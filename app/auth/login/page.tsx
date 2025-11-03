@@ -30,31 +30,29 @@ export default function LoginPage() {
     if (!valid) return;
     setLoading(true);
     try {
-      // Use NextAuth signIn for credentials with redirect: false
       const res = await signIn("credentials", {
         email,
         password,
         redirect: false,
       });
       if (res?.error) {
-        // Show the real error message from NextAuth if available
         setEmailError(res.error);
         setLoading(false);
         return;
       }
       if (res?.ok) {
         setSent(true);
-        setEmail("");
-        setPassword("");
+        // Do NOT clear the form or setLoading(false) here
         setTimeout(() => {
           router.push("/dashboard");
         }, 1200);
+        return; // <-- Exit so loading stays true
       } else {
         setEmailError("Login failed. Please try again.");
+        setLoading(false);
       }
     } catch {
       setEmailError("Something went wrong. Please try again.");
-    } finally {
       setLoading(false);
     }
   }
@@ -164,17 +162,18 @@ export default function LoginPage() {
               disabled={loading}
               className="mt-2 rounded-lg bg-emerald-700 px-4 py-3 text-white font-semibold shadow hover:bg-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-200 cursor-pointer"
             >
-              {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25"></circle>
-                    <path fill="currentColor" className="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Logging in...
-                </span>
-              ) : (
-                "Log in"
-              )}
+              {loading
+                ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25"></circle>
+                      <path fill="currentColor" className="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Logging in...
+                  </span>
+                )
+                : "Log in"
+              }
             </button>
             {/* Google Auth Button */}
             <div className="relative my-4">

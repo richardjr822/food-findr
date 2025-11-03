@@ -10,6 +10,7 @@ import {
   HiOutlineArrowRightOnRectangle,
   HiOutlineUserCircle,
 } from "react-icons/hi2";
+import { useSession } from "next-auth/react";
 
 // Sample chat history data
 const sampleChats = [
@@ -35,6 +36,10 @@ export default function Sidebar() {
   const [userMenu, setUserMenu] = useState(false);
   const [showLogout, setShowLogout] = useState(false);
   const [search, setSearch] = useState("");
+
+  // Fetch real user data from NextAuth session
+  const { data: session } = useSession();
+  const realUser = session?.user;
 
   // Filter chats based on search input
   const filteredChats = chats.filter((chat) =>
@@ -86,8 +91,11 @@ export default function Sidebar() {
 
   function handleLogout() {
     setShowLogout(false);
-    // Replace with your real logout logic
-    window.location.href = "/auth/login";
+    // Call your logout API to clear the cookie, then redirect
+    fetch("/api/auth/logout", { method: "POST" })
+      .then(() => {
+        window.location.href = "/auth/login";
+      });
   }
 
   return (
@@ -185,7 +193,8 @@ export default function Sidebar() {
                   </button>
                 </li>
               ))
-            )}
+            )
+            }
           </ul>
         </nav>
         {/* Footer: User section */}
@@ -197,15 +206,15 @@ export default function Sidebar() {
               aria-haspopup="true"
               aria-expanded={userMenu}
             >
-              <span className="flex items-center justify-center h-8 w-8 rounded-full bg-emerald-100 text-emerald-700 font-bold text-base">
-                {user.initials}
+              <span className="flex items-center justify-center h-8 w-8 rounded-full bg-emerald-100 text-emerald-700">
+                <HiOutlineUserCircle className="w-6 h-6" />
               </span>
               <span className="flex-1 text-left">
                 <span className="block font-semibold text-neutral-900 leading-tight">
-                  {user.name}
+                  {realUser?.name || user.name}
                 </span>
                 <span className="block text-xs text-neutral-500">
-                  {user.plan}
+                  {realUser?.email || user.email}
                 </span>
               </span>
               <HiOutlineUserCircle className="w-5 h-5 text-neutral-400" />
@@ -225,7 +234,7 @@ export default function Sidebar() {
                   Settings
                 </button>
                 <button
-                  className="flex items-center gap-2 w-full px-4 py-2 text-sm text-neutral-800 hover:bg-neutral-100 cursor-pointer"
+                  className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 cursor-pointer"
                   onClick={() => {
                     setUserMenu(false);
                     setShowLogout(true);
