@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { 
   HiOutlineSparkles, 
   HiOutlineBookmark, 
@@ -65,7 +65,7 @@ type Thread = {
   updatedAt?: string;
 };
 
-export default function GenerateRecipePage() {
+function GenerateRecipeContent() {
   const [threads, setThreads] = useState<Thread[]>([]);
   const [activeThreadId, setActiveThreadId] = useState("");
   const [messages, setMessages] = useState<ChatMsg[]>([]);
@@ -82,6 +82,7 @@ export default function GenerateRecipePage() {
 
   const searchParams = useSearchParams();
 
+  // ...existing code... (rest of the component logic stays the same)
   // Load ingredients
   useEffect(() => {
     (async () => {
@@ -818,5 +819,17 @@ export default function GenerateRecipePage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function GenerateRecipePage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen items-center justify-center">
+        <div className="h-12 w-12 rounded-full border-4 border-emerald-200 border-t-emerald-600 animate-spin" />
+      </div>
+    }>
+      <GenerateRecipeContent />
+    </Suspense>
   );
 }
