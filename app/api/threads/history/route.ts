@@ -1,0 +1,44 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import clientPromise from "@/lib/mongodb";
+
+export const dynamic = "force-dynamic";
+
+export async function GET(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    const userId = session?.user?.email;
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const url = new URL(req.url);
+    const page = Math.max(1, Number(url.searchParams.get("page") || 1));
+    const pageSize = Math.min(100, Math.max(1, Number(url.searchParams.get("pageSize") || 50)));
+
+    const client = await clientPromise;
+    const db = client.db();
+
+    const listPipeline = [
+      { $match: { userId, hasSuccessfulGeneration: true } },
+      { $sort: { updatedAt: -1 } },
+      { $group: { _id: "$id", doc: { $first: "$$ROOT" } } },
+      { $replaceRoot: { newRoot: "$doc" } },
+      { $sort: { updatedAt: -1 } },
+      { $project: { _id: 0, id: 1, title: 1, updatedAt: 1, preview: 1, lastRecipeTitle: 1, messageCount: 1 } },
+      { $skip: (page - 1) * pageSize },
+      { $limit: pageSize },
+    ];
+
+    const totalPipeline = [{ $match: { userId, hasSuccessfulGeneration: true } }, { $group: { _id: "$id" } }, { $count: "total" }];
+
+    const [threads, totalRes] = await Promise.all([
+      db.collection("threads").aggregate(listPipeline).toArray(),
+      db.collection("threads").aggregate(totalPipeline).toArray(),
+    ]);
+    const total = totalRes[0]?.total || 0;
+
+    return NextResponse.json({ page, pageSize, total, threads });
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message || "Failed to fetch history" }, { status: 500 });
+  }
+}

@@ -43,3 +43,9 @@ export async function validateUser(email: string, password: string): Promise<Use
   const isValid = await bcrypt.compare(password, user.passwordHash);
   return isValid ? user : null;
 }
+
+// Simple placeholder. Replace with NextAuth/JWT/session logic.
+export async function getUserId(): Promise<string> {
+  // Throw if unauthenticated
+  return "demo-user-id";
+}

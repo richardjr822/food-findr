@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { appendMessage } from "@/lib/models/thread";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 type RecipeResponse = {
   title: string;
@@ -90,6 +94,15 @@ function safeParseJson(text: string) {
   return JSON.parse(core);
 }
 
+function extractNumber(raw: any): number | undefined {
+  if (raw == null) return undefined;
+  if (typeof raw === "number" && isFinite(raw)) return raw;
+  const s = String(raw).toLowerCase().trim();
+  if (!s || s === "—" || s === "-" || s === "n/a") return undefined;
+  const match = s.match(/(\d+(\.\d+)?)/);
+  return match ? Number(match[1]) : undefined;
+}
+
 function coerceRecipe(obj: any): RecipeResponse {
   const fallback =
     "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1200&auto=format&fit=crop&q=60";
@@ -102,11 +115,20 @@ function coerceRecipe(obj: any): RecipeResponse {
     ingredients: Array.isArray(obj?.ingredients) ? obj.ingredients.map(String) : [],
     instructions: Array.isArray(obj?.instructions) ? obj.instructions.map(String) : [],
     nutrition: {
-      calories: obj?.nutrition?.calories ?? "—",
-      protein: obj?.nutrition?.protein ?? "—",
-      carbs: obj?.nutrition?.carbs ?? "—",
-      fat: obj?.nutrition?.fat ?? "—",
+      calories: obj?.nutrition?.calories,
+      protein: obj?.nutrition?.protein,
+      carbs: obj?.nutrition?.carbs,
+      fat: obj?.nutrition?.fat,
     },
+  };
+}
+
+async function callAI(_: any) {
+  return {
+    title: "Sample Generated Recipe",
+    ingredients: ["Ingredient A", "Ingredient B"],
+    instructions: ["Step 1", "Step 2"],
+    nutrition: { calories: 420, protein: 25, carbs: 50, fat: 15 },
   };
 }
 
@@ -118,7 +140,12 @@ export async function POST(req: NextRequest) {
     });
 
   try {
-    const body = await req.json().catch(() => ({}));
+    const session = await getServerSession(authOptions);
+    const userId = session?.user?.email;
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const body = await req.json();
+    const { threadId, userMsg } = body;
     const ingredients = String(body?.ingredients ?? "").trim();
     const mealType = body?.mealType ? String(body.mealType) : "";
     const diet = Array.isArray(body?.diet) ? body.diet.map(String) : [];
@@ -131,10 +158,6 @@ export async function POST(req: NextRequest) {
           .filter((m: Msg) => m.content)
           .slice(-12)
       : [];
-
-    if (!ingredients && !history.length) {
-      return send({ error: "Prompt/ingredients are required." }, 400);
-    }
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) return send({ error: "Missing GEMINI_API_KEY." }, 500);
@@ -169,7 +192,72 @@ export async function POST(req: NextRequest) {
       return send({ error: "Model returned incomplete data. Please try again." }, 502);
     }
 
-    return send(parsed, 200);
+    // First message creation:
+    const userMessageId = `m_${Date.now()}_u`;
+    await appendMessage(userId, threadId, {
+      id: userMessageId,
+      role: "user",
+      content: userMsg,
+      createdAt: new Date(),
+    });
+
+    // Append model message (not saved yet)
+    const modelMessageId = `m_${Date.now()}_m`;
+    await appendMessage(userId, threadId, {
+      id: modelMessageId,
+      role: "model",
+      content: parsed.title,
+      createdAt: new Date(),
+      saved: false,
+      recipeSnapshot: {
+        title: parsed.title,
+        ingredients: parsed.ingredients,
+        instructions: parsed.instructions,
+        nutrition: {
+          calories: typeof parsed.nutrition.calories === "number"
+            ? parsed.nutrition.calories
+            : Number(parsed.nutrition.calories) || undefined,
+          protein: typeof parsed.nutrition.protein === "number"
+            ? parsed.nutrition.protein
+            : Number(parsed.nutrition.protein) || undefined,
+          carbs: typeof parsed.nutrition.carbs === "number"
+            ? parsed.nutrition.carbs
+            : Number(parsed.nutrition.carbs) || undefined,
+          fat: typeof parsed.nutrition.fat === "number"
+            ? parsed.nutrition.fat
+            : Number(parsed.nutrition.fat) || undefined,
+        },
+      },
+    });
+
+    const nutritionNumbers = {
+      calories: extractNumber(parsed.nutrition.calories) ?? 0,
+      protein: extractNumber(parsed.nutrition.protein) ?? 0,
+      carbs: extractNumber(parsed.nutrition.carbs) ?? 0,
+      fat: extractNumber(parsed.nutrition.fat) ?? 0,
+    };
+
+    // Replace recipeSnapshot nutrition block:
+    await appendMessage(userId, threadId, {
+      id: modelMessageId,
+      role: "model",
+      content: parsed.title,
+      createdAt: new Date(),
+      saved: false,
+      recipeSnapshot: {
+        title: parsed.title,
+        ingredients: parsed.ingredients,
+        instructions: parsed.instructions,
+        nutrition: nutritionNumbers,
+      },
+    });
+
+    // Replace response return nutrition block:
+    return send({
+      messageId: modelMessageId,
+      ...parsed,
+      nutrition: nutritionNumbers,
+    }, 200);
   } catch (err: any) {
     const detail = process.env.NODE_ENV !== "production" ? String(err?.message || err) : undefined;
     console.error("Gemini generate error:", err);
