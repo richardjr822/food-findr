@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { 
   HiOutlineSparkles, 
   HiOutlineBookmark, 
@@ -17,7 +18,6 @@ import {
   HiChevronUp
 } from "react-icons/hi2";
 import Sidebar from "@/components/sidebar";
-import { useSearchParams } from "next/navigation";
 
 const MEAL_TYPES = [
   { label: "Breakfast", value: "breakfast", icon: "🌅" },
@@ -65,6 +65,17 @@ type Thread = {
   updatedAt?: string;
 };
 
+function dedupeById<T extends { id: string }>(arr: T[]): T[] {
+  const seen = new Set<string>();
+  const out: T[] = [];
+  for (const item of arr) {
+    if (!item?.id || seen.has(item.id)) continue;
+    seen.add(item.id);
+    out.push(item);
+  }
+  return out;
+}
+
 function GenerateRecipeContent() {
   const [threads, setThreads] = useState<Thread[]>([]);
   const [activeThreadId, setActiveThreadId] = useState("");
@@ -81,66 +92,81 @@ function GenerateRecipeContent() {
   const [expandedRecipes, setExpandedRecipes] = useState<Set<string>>(new Set());
 
   const searchParams = useSearchParams();
+  const loadSeq = useRef(0);
 
-  // ...existing code... (rest of the component logic stays the same)
-  // Load ingredients
+  // Load ingredients (ignore AbortError)
   useEffect(() => {
+    const ctrl = new AbortController();
     (async () => {
       try {
-        const res = await fetch("/api/ingredients");
+        const res = await fetch("/api/ingredients", { signal: ctrl.signal });
         if (!res.ok) throw new Error("Failed to fetch ingredients");
         const data = await res.json();
         setIngredients(Array.isArray(data) ? data : []);
-      } catch {
+      } catch (e: any) {
+        if (e?.name === "AbortError") return;
         setIngredients([]);
       }
     })();
+    return () => ctrl.abort();
   }, []);
 
-  // Helper to normalize a backend message -> ChatMsg with safe arrays
-  function normalizeMessage(m: any): ChatMsg {
-    const snap = m.recipeSnapshot || m.recipe;
-    let recipe: ChatMsg["recipe"] | undefined;
-    if (snap) {
-      recipe = {
-        title: snap.title || "Untitled Recipe",
-        ingredients: Array.isArray(snap.ingredients) ? snap.ingredients : [],
-        instructions: Array.isArray(snap.instructions) ? snap.instructions : [],
-        nutrition: snap.nutrition || {},
-      };
-    }
-    return {
-      id: m.id,
-      role: m.role,
-      content: m.content,
-      recipe,
-      recipeSnapshot: snap,
-      saved: !!m.saved,
-      recipeId: m.recipeId ?? null,
-      createdAt: m.createdAt || new Date().toISOString(),
-    };
-  }
-
-  // Load threads from server
+  // SINGLE loader: load a specific thread from URL or load recent threads
   useEffect(() => {
+    const ctrl = new AbortController();
+    const seq = ++loadSeq.current;
+    setError("");
+
     (async () => {
       try {
-        const res = await fetch("/api/threads");
-        const data: any[] = await res.json();
-        setThreads(data as Thread[]);
-        if (data.length) {
-          setActiveThreadId(data[0].id);
-          const msgs: ChatMsg[] = (data[0].messages || []).map(normalizeMessage);
-          setMessages(msgs);
-          rebuildHistory(msgs);
-        } else {
-          setActiveThreadId(`t_${Date.now()}`);
+        const urlId = searchParams.get("thread");
+        if (!urlId) {
+          const res = await fetch("/api/threads", { cache: "no-store", signal: ctrl.signal });
+          if (!res.ok) throw new Error("Failed to load threads");
+          const data = await res.json();
+          if (loadSeq.current !== seq || ctrl.signal.aborted) return;
+
+          const list = Array.isArray(data) ? data : data?.threads || [];
+          if (list.length) {
+            const first = list[0];
+            setActiveThreadId(first.id);
+            const msgs: ChatMsg[] = (first.messages || []).map(normalizeMessage);
+            const deduped: ChatMsg[] = dedupeById<ChatMsg>(msgs);
+            setMessages(deduped);
+            rebuildHistory(deduped);
+          } else {
+            setActiveThreadId(`t_${Date.now()}`);
+            setMessages([]);
+            setHistory([]);
+          }
+          return;
         }
+
+        const res = await fetch(`/api/threads/${encodeURIComponent(urlId)}`, { cache: "no-store", signal: ctrl.signal });
+        if (loadSeq.current !== seq || ctrl.signal.aborted) return;
+
+        if (res.status === 404) {
+          setActiveThreadId(urlId);
+          setMessages([]);
+          setHistory([]);
+          return;
+        }
+        if (!res.ok) throw new Error("Failed to load thread");
+
+        const data = await res.json();
+        setActiveThreadId(data.id || urlId);
+        const msgs: ChatMsg[] = (((data.messages as any[]) || []).map(normalizeMessage)) as ChatMsg[];
+        const deduped: ChatMsg[] = dedupeById<ChatMsg>(msgs);
+        setMessages(deduped);
+        rebuildHistory(deduped);
       } catch (e: any) {
-        setError(e.message || "Failed loading threads");
+        if (e?.name === "AbortError" || ctrl.signal.aborted) return;
+        setError(e?.message || "Failed loading thread");
       }
     })();
-  }, []);
+
+    return () => ctrl.abort();
+  }, [searchParams]);
 
   // Persist thread changes (debounced)
   useEffect(() => {
@@ -181,71 +207,28 @@ function GenerateRecipeContent() {
     return () => clearTimeout(timeout);
   }, [messages, activeThreadId]);
 
-  useEffect(() => {
-    const handleSelect = (e: CustomEvent) => {
-      const id = e.detail?.id;
-      if (!id) return;
-      (async () => {
-        const res = await fetch(`/api/threads/${id}`);
-        if (res.status === 404) {
-          setActiveThreadId(id);
-          setMessages([]);
-          setHistory([]);
-          return;
-        }
-        if (!res.ok) return;
-        const data = await res.json();
-        setActiveThreadId(data.id);
-        const msgs = (data.messages || []).map(normalizeMessage);
-        setMessages(msgs);
-        rebuildHistory(msgs);
-      })();
+  function normalizeMessage(m: any): ChatMsg {
+    const snap = m.recipeSnapshot || m.recipe;
+    let recipe: ChatMsg["recipe"] | undefined;
+    if (snap) {
+      recipe = {
+        title: snap.title || "Untitled Recipe",
+        ingredients: Array.isArray(snap.ingredients) ? snap.ingredients : [],
+        instructions: Array.isArray(snap.instructions) ? snap.instructions : [],
+        nutrition: snap.nutrition || {},
+      };
+    }
+    return {
+      id: m.id,
+      role: m.role,
+      content: m.content,
+      recipe,
+      recipeSnapshot: snap,
+      saved: !!m.saved,
+      recipeId: m.recipeId ?? null,
+      createdAt: m.createdAt || new Date().toISOString(),
     };
-    window.addEventListener("threadSelected", handleSelect as EventListener);
-    return () => window.removeEventListener("threadSelected", handleSelect as EventListener);
-  }, []);
-
-  useEffect(() => {
-    const urlId = searchParams.get("thread");
-    if (!urlId) return;
-
-    setActiveThreadId(urlId);
-    (async () => {
-      const res = await fetch(`/api/threads/${urlId}`, { cache: "no-store" });
-      if (res.status === 404) {
-        setMessages([]);
-        setHistory([]);
-        return;
-      }
-      if (res.ok) {
-        const data = await res.json();
-        const msgs: ChatMsg[] = (data.messages || []).map(normalizeMessage);
-        setMessages(msgs);
-        rebuildHistory(msgs);
-      }
-    })();
-  }, [searchParams]);
-
-  useEffect(() => {
-    (async () => {
-      if (searchParams.get("thread")) return;
-      try {
-        const res = await fetch("/api/threads", { cache: "no-store" });
-        const data: any[] = await res.json();
-        setThreads(data as Thread[]);
-        if (data.length) {
-          setActiveThreadId(data[0].id);
-          const msgs: ChatMsg[] = (data[0].messages || []).map(normalizeMessage);
-          setMessages(msgs);
-          rebuildHistory(msgs);
-        } else {
-          setActiveThreadId(`t_${Date.now()}`);
-        }
-      } catch (e: any) {
-        setError(e.message || "Failed loading threads");
-      }
-    })();
-  }, []);
+  }
 
   function rebuildHistory(msgs: ChatMsg[]) {
     const compact = msgs
@@ -295,25 +278,19 @@ function GenerateRecipeContent() {
 
     if (userMsg) {
       const userId = `m_${Date.now()}_u`;
-      const userMessage: ChatMsg = {
-        id: userId,
-        role: "user",
-        content: userMsg,
-        createdAt: new Date().toISOString(),
-      };
-      setMessages(prev => [...prev, userMessage]);
-      rebuildHistory([...messages, userMessage]);
+      const userMessage: ChatMsg = { id: userId, role: "user", content: userMsg, createdAt: new Date().toISOString() };
+      setMessages(prev => {
+        const next = dedupeById([...prev, userMessage]);
+        rebuildHistory(next);
+        return next;
+      });
     }
 
     try {
       const res = await fetch("/api/recipes/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          threadId: activeThreadId,
-          userMsg,
-          history,
-        }),
+        body: JSON.stringify({ threadId: activeThreadId, userMsg, history }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Generation failed");
@@ -336,8 +313,12 @@ function GenerateRecipeContent() {
         saved: false,
         createdAt: new Date().toISOString(),
       };
-      setMessages(prev => [...prev, modelMsg]);
-      rebuildHistory([...messages, modelMsg]);
+
+      setMessages(prev => {
+        const next = dedupeById([...prev, modelMsg]);
+        rebuildHistory(next);
+        return next;
+      });
 
       setManualPrompt("");
       setSelectedIngredients([]);

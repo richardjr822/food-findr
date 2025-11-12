@@ -25,27 +25,65 @@ type RecipeResponse = {
 
 type Msg = { role: "user" | "model"; content: string };
 
+function isClearlyOutOfScope(text: string) {
+  const s = (text || "").toLowerCase();
+  if (!s.trim()) return true;
+
+  // Obvious non-food domains
+  const blocked = [
+    "build a website","code","program","programming","javascript","typescript","python","java","c++","c#","react","next.js","node",
+    "deploy","vercel","docker","kubernetes","terminal","bash","powershell","github","git","sql","database",
+    "weather","travel","flight","hotel","itinerary","tourist",
+    "movie","film","series","tv show","game","gaming","cheat",
+    "sports bet","betting","odds",
+    "stock","stocks","trading","crypto","bitcoin","ethereum","nft",
+    "essay","email","poem","story","novel","lyrics","song","speech","script",
+    "math","algebra","geometry","calculus","proof","equation",
+    "medicine","diagnose","medical advice","legal","lawyer","tax advice"
+  ];
+  if (blocked.some(k => s.includes(k))) return true;
+
+  // Positive food signals
+  const foodHints = [
+    "recipe","ingredients","cook","cooking","bake","baking","grill","fry","saute","sauté","meal","dish","serve",
+    "nutrition","calories","protein","carbs","fat","diet","cuisine","marinate","simmer","boil","roast","season",
+    "pan","oven","skillet","sauce","garnish","prep","servings"
+  ];
+  const hasFoodSignal = foodHints.some(k => s.includes(k));
+  return !hasFoodSignal;
+}
+
 function buildPrompt({
-  ingredients,
+  userText,
   mealType,
   diet,
 }: {
-  ingredients: string;
+  userText: string;
   mealType?: string;
   diet?: string[];
 }) {
   const meal = mealType ? `Meal type: ${mealType}.` : "Meal type: any.";
+
   const dietary =
     diet && diet.length
       ? `Dietary restrictions: ${diet.join(", ")}.`
       : "No strict dietary restrictions.";
 
-  // Default to Filipino cuisine emphasis unless user specifies otherwise
-  const cuisineBias = `Default cuisine preference: Filipino (Philippines). If the user didn't specify a cuisine, make the recipe Filipino or Filipino-inspired. If they specify a different cuisine, follow that instead.`;
+  // Default cuisine rule (Filipino by default, but user overrides)
+  const cuisineRule =
+    `Cuisine handling: If the user specifies a cuisine, strictly follow it. ` +
+    `If no cuisine is specified, prefer Filipino or Filipino‑inspired. Do not force Filipino when another cuisine is requested.`;
+
+  // Scope guard: food-only and structured failure mode
+  const scopeGuard =
+    `Scope: Only handle topics related to food, cooking, recipes, or nutrition. ` +
+    `If the user request is outside this scope, respond with strict JSON: {"error":"OUT_OF_SCOPE","reason":string} and nothing else.`;
 
   return `
-You are a culinary and nutrition assistant. Create ONE complete recipe using the user's free-form prompt and/or ingredients.
-${cuisineBias}
+You are a culinary and nutrition assistant. Create ONE complete recipe using the user's free-form prompt.
+
+${scopeGuard}
+${cuisineRule}
 Respect dietary restrictions strictly. Prefer pantry staples (oil, salt, pepper, common spices). Avoid uncommon items.
 
 Respond ONLY with strict JSON. No markdown, no commentary.
@@ -68,17 +106,17 @@ JSON schema:
 }
 
 User inputs:
-Free-form prompt/ingredients: ${ingredients}
+Free-form prompt: ${userText}
 ${meal}
 ${dietary}
 
 Constraints:
+- Stay within food/cooking/recipe/nutrition scope only.
 - Use user's inputs primarily; add only minimal staples if needed.
 - Ensure the recipe fits the dietary rules.
 - Estimate nutrition per serving.
 - Keep measurements consistent (metric or US, not mixed).
 - Title should be catchy but specific.
-- If you cannot fully comply, adapt the recipe to fit the restrictions.
 `;
 }
 
@@ -145,8 +183,10 @@ export async function POST(req: NextRequest) {
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await req.json();
-    const { threadId, userMsg } = body;
-    const ingredients = String(body?.ingredients ?? "").trim();
+    const { threadId } = body;
+
+    const userMsg: string = String(body?.userMsg ?? "").trim();
+    const ingredientsFallback: string = String(body?.ingredients ?? "").trim();
     const mealType = body?.mealType ? String(body.mealType) : "";
     const diet = Array.isArray(body?.diet) ? body.diet.map(String) : [];
     const history: Msg[] = Array.isArray(body?.history)
@@ -158,6 +198,21 @@ export async function POST(req: NextRequest) {
           .filter((m: Msg) => m.content)
           .slice(-12)
       : [];
+
+    const userText = userMsg || ingredientsFallback;
+
+    // Food-only pre-check (fast heuristic)
+    if (isClearlyOutOfScope(userText)) {
+      // Optionally record the user message only (no model reply)
+      const userMessageId = `m_${Date.now()}_u`;
+      await appendMessage(userId, threadId, {
+        id: userMessageId,
+        role: "user",
+        content: userText || "(empty)",
+        createdAt: new Date(),
+      });
+      return send({ error: "Request is outside recipe scope." }, 422);
+    }
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) return send({ error: "Missing GEMINI_API_KEY." }, 500);
@@ -174,88 +229,86 @@ export async function POST(req: NextRequest) {
       })),
     });
 
-    const userPrompt = buildPrompt({ ingredients, mealType, diet });
+    const userPrompt = buildPrompt({ userText, mealType, diet });
     const result = await chat.sendMessage(userPrompt);
     let text = result.response.text();
 
-    let parsed: RecipeResponse;
+    let parsed: RecipeResponse | { error?: string; reason?: string };
     try {
       parsed = coerceRecipe(safeParseJson(text));
     } catch {
       const strict = userPrompt + "\nReturn STRICT JSON only (no code fences or prose).";
       const retry = await chat.sendMessage(strict);
       text = retry.response.text();
-      parsed = coerceRecipe(safeParseJson(text));
+      parsed = safeParseJson(text);
+      // If still not recipe-shaped, coerce if possible
+      if (!(parsed as any)?.error) {
+        parsed = coerceRecipe(parsed);
+      }
     }
 
-    if (!parsed.title || !parsed.ingredients?.length || !parsed.instructions?.length) {
+    // Handle explicit OUT_OF_SCOPE from the model
+    if ((parsed as any)?.error === "OUT_OF_SCOPE") {
+      const reason = (parsed as any)?.reason || "Outside recipe scope.";
+      const userMessageId = `m_${Date.now()}_u`;
+      await appendMessage(userId, threadId, {
+        id: userMessageId,
+        role: "user",
+        content: userText || "(empty)",
+        createdAt: new Date(),
+      });
+      return send({ error: "Request is outside recipe scope.", reason }, 422);
+    }
+
+    const recipe = parsed as RecipeResponse;
+
+    if (!recipe.title || !recipe.ingredients?.length || !recipe.instructions?.length) {
       return send({ error: "Model returned incomplete data. Please try again." }, 502);
     }
 
-    // First message creation:
+    // Append user message
     const userMessageId = `m_${Date.now()}_u`;
     await appendMessage(userId, threadId, {
       id: userMessageId,
       role: "user",
-      content: userMsg,
+      content: userText || "(empty)",
       createdAt: new Date(),
     });
 
-    // Append model message (not saved yet)
+    // Normalize nutrition to numbers where possible
+    const nutritionNumbers = {
+      calories: extractNumber(recipe.nutrition?.calories) ?? 0,
+      protein: extractNumber(recipe.nutrition?.protein) ?? 0,
+      carbs: extractNumber(recipe.nutrition?.carbs) ?? 0,
+      fat: extractNumber(recipe.nutrition?.fat) ?? 0,
+    };
+
+    // Append model message ONCE (remove duplicate append)
     const modelMessageId = `m_${Date.now()}_m`;
     await appendMessage(userId, threadId, {
       id: modelMessageId,
       role: "model",
-      content: parsed.title,
+      content: recipe.title,
       createdAt: new Date(),
       saved: false,
       recipeSnapshot: {
-        title: parsed.title,
-        ingredients: parsed.ingredients,
-        instructions: parsed.instructions,
-        nutrition: {
-          calories: typeof parsed.nutrition.calories === "number"
-            ? parsed.nutrition.calories
-            : Number(parsed.nutrition.calories) || undefined,
-          protein: typeof parsed.nutrition.protein === "number"
-            ? parsed.nutrition.protein
-            : Number(parsed.nutrition.protein) || undefined,
-          carbs: typeof parsed.nutrition.carbs === "number"
-            ? parsed.nutrition.carbs
-            : Number(parsed.nutrition.carbs) || undefined,
-          fat: typeof parsed.nutrition.fat === "number"
-            ? parsed.nutrition.fat
-            : Number(parsed.nutrition.fat) || undefined,
-        },
-      },
-    });
-
-    const nutritionNumbers = {
-      calories: extractNumber(parsed.nutrition.calories) ?? 0,
-      protein: extractNumber(parsed.nutrition.protein) ?? 0,
-      carbs: extractNumber(parsed.nutrition.carbs) ?? 0,
-      fat: extractNumber(parsed.nutrition.fat) ?? 0,
-    };
-
-    // Replace recipeSnapshot nutrition block:
-    await appendMessage(userId, threadId, {
-      id: modelMessageId,
-      role: "model",
-      content: parsed.title,
-      createdAt: new Date(),
-      saved: false,
-      recipeSnapshot: {
-        title: parsed.title,
-        ingredients: parsed.ingredients,
-        instructions: parsed.instructions,
+        title: recipe.title,
+        ingredients: recipe.ingredients,
+        instructions: recipe.instructions,
         nutrition: nutritionNumbers,
       },
     });
 
-    // Replace response return nutrition block:
+    // Return normalized payload
     return send({
       messageId: modelMessageId,
-      ...parsed,
+      title: recipe.title,
+      image: recipe.image,
+      time: recipe.time,
+      servings: recipe.servings,
+      difficulty: recipe.difficulty,
+      ingredients: recipe.ingredients,
+      instructions: recipe.instructions,
       nutrition: nutritionNumbers,
     }, 200);
   } catch (err: any) {

@@ -52,6 +52,7 @@ export default function Sidebar() {
 
   const userMenuRef = useRef<HTMLDivElement>(null);
   const logoutModalRef = useRef<HTMLDivElement>(null);
+  const navigatingRef = useRef<string | null>(null);
 
   // Close user menu when clicking outside
   useEffect(() => {
@@ -119,16 +120,20 @@ export default function Sidebar() {
   async function handleNewRecipeClick(e: React.MouseEvent) {
     e.preventDefault();
     const id = `t_${Date.now()}`;
+    if (navigatingRef.current === id) return;
+    navigatingRef.current = id;
     setActiveId(id);
-    window.dispatchEvent(new CustomEvent("threadCreated", { detail: { id } }));
     router.push(`/generate?thread=${id}`);
+    setTimeout(() => (navigatingRef.current = null), 800);
   }
 
   // Open existing thread
   function openThread(id: string) {
+    if (navigatingRef.current === id) return;
+    navigatingRef.current = id;
     setActiveId(id);
-    window.dispatchEvent(new CustomEvent("threadSelected", { detail: { id } }));
     router.push(`/generate?thread=${id}`);
+    setTimeout(() => (navigatingRef.current = null), 800);
   }
 
   function handleLogout() {
