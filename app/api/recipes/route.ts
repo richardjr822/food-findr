@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import clientPromise from "@/lib/mongodb";
+import { requireUser } from "@/lib/session";
 import { ObjectId } from "mongodb";
 import type { Document, Filter, Collection } from "mongodb";
 
@@ -9,9 +8,9 @@ export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    const userId = session?.user?.email;
-    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const auth = await requireUser();
+    if (auth instanceof NextResponse) return auth; // 401
+    const userId = auth.email;
 
     const { searchParams } = new URL(req.url);
     const page = Math.max(1, Number(searchParams.get("page") || 1));
@@ -48,9 +47,9 @@ export async function GET(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    const userId = session?.user?.email;
-    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const auth = await requireUser();
+    if (auth instanceof NextResponse) return auth; // 401
+    const userId = auth.email;
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id")?.trim();

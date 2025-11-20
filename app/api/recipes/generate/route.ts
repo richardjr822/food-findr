@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { appendMessage } from "@/lib/models/thread";
+import { requireUser } from "@/lib/session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -178,9 +177,9 @@ export async function POST(req: NextRequest) {
     });
 
   try {
-    const session = await getServerSession(authOptions);
-    const userId = session?.user?.email;
-    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const auth = await requireUser();
+    if (auth instanceof NextResponse) return auth; // 401
+    const userId = auth.email;
 
     const body = await req.json();
     const { threadId } = body;

@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import clientPromise from "@/lib/mongodb";
+import { requireUser } from "@/lib/session";
 import { ObjectId } from "mongodb";
 
 export const dynamic = "force-dynamic";
@@ -18,9 +17,9 @@ async function toggleMessageSaved(userId: string, threadId: string, messageId: s
 
 export async function POST(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    const userId = session?.user?.email;
-    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const auth = await requireUser();
+    if (auth instanceof NextResponse) return auth; // 401
+    const userId = auth.email;
 
     const body = await req.json();
     const { threadId, messageId, title, ingredients, instructions, nutrition } = body || {};
@@ -31,6 +30,7 @@ export async function POST(req: Request) {
     const client = await clientPromise;
     const db = client.db();
     const thread = await db.collection("threads").findOne({ userId, id: String(threadId) }, { projection: { messages: 1 } });
+
     if (!thread) return NextResponse.json({ error: "Thread not found" }, { status: 404 });
 
     const msg = (thread.messages || []).find((m: any) => m.id === messageId);
@@ -75,9 +75,9 @@ export async function POST(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    const userId = session?.user?.email;
-    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const auth = await requireUser();
+    if (auth instanceof NextResponse) return auth; // 401
+    const userId = auth.email;
 
     const { searchParams } = new URL(req.url);
     const threadId = searchParams.get("threadId");

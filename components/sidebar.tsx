@@ -381,13 +381,14 @@ export default function Sidebar() {
 
             {userMenu && !collapsed && (
               <div className="absolute left-4 right-4 bottom-20 bg-white border border-neutral-200 rounded-xl shadow-2xl py-2 z-50 animate-fade-in">
-                <button
+              <Link
+                  href="/settings"
                   className="flex items-center gap-3 w-full px-4 py-3 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 transition rounded-lg"
                   onClick={() => setUserMenu(false)}
                 >
                   <HiOutlineCog6Tooth className="w-5 h-5" />
                   Settings
-                </button>
+                </Link>
                 <div className="my-1 border-t border-neutral-100"></div>
                 <button
                   className="flex items-center gap-3 w-full px-4 py-3 text-sm font-semibold text-rose-600 hover:bg-rose-50 transition rounded-lg"

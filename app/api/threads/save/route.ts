@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
-import { getUserId } from "@/lib/auth";
+import { requireUser } from "@/lib/session";
 import { getThreadsCollection } from "@/lib/models/thread";
 
 export async function POST(req: NextRequest) {
-  const userId = await getUserId();
+  const auth = await requireUser();
+  if (auth instanceof NextResponse) return auth; // 401
+  const { userId } = auth;
   const client = await clientPromise;
   const db = client.db();
 

@@ -1,20 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import clientPromise from "@/lib/mongodb";
+import { requireUser } from "@/lib/session";
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await requireUser();
+    if (auth instanceof NextResponse) return auth; // 401
+    const { email } = auth;
 
     const client = await clientPromise;
     const db = client.db();
     const ingredients = await db
       .collection("ingredients")
-      .find({ userId: session.user.email })
+      .find({ userId: email })
       .sort({ createdAt: -1 })
       .toArray();
 
@@ -27,13 +25,24 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await requireUser();
+    if (auth instanceof NextResponse) return auth; // 401
+    const { email } = auth;
 
     const body = await req.json();
     const { name, quantity, unit, category } = body;
+
+    // IDOR attempt logging: ignore any identifier fields
+    if (body && typeof body === "object") {
+      const b: any = body;
+      if (b.userId || b._id || b.email) {
+        console.warn("[IDOR] Ingredients POST included identifier fields and was ignored", {
+          path: "/api/ingredients",
+          actorEmail: email,
+          provided: { userId: b.userId, _id: b._id, email: b.email },
+        });
+      }
+    }
 
     if (!name?.trim()) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
@@ -43,7 +52,7 @@ export async function POST(req: NextRequest) {
     const db = client.db();
 
     const newIngredient = {
-      userId: session.user.email,
+      userId: email,
       name: name.trim(),
       quantity: quantity?.trim() || "",
       unit: unit?.trim() || "",

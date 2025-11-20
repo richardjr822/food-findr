@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { signIn } from "next-auth/react"; // <-- Add this import
+import { useState, useEffect } from "react";
+import { signIn, useSession } from "next-auth/react"; 
+import { useRouter, useSearchParams } from "next/navigation";
 import EmailConfirmation from "@/components/emailconfirmation";
 
 function getPasswordStrength(password: string) {
@@ -47,6 +48,17 @@ export default function SignupPage() {
   const [confirmError, setConfirmError] = useState("");
 
   const passwordStrength = getPasswordStrength(password);
+
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = (searchParams?.get("callbackUrl") as string) || "/dashboard";
+  const { status } = useSession();
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      router.replace(callbackUrl);
+    }
+  }, [status, router, callbackUrl]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -118,7 +130,7 @@ export default function SignupPage() {
 
   // Add this handler for Google signup
   function handleGoogleSignup() {
-    signIn("google", { callbackUrl: "/" });
+    signIn("google", { callbackUrl });
   }
 
   return (

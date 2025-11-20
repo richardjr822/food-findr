@@ -1,17 +1,26 @@
 "use client";
 
-import { useState } from "react";
-import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { signIn, useSession } from "next-auth/react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function SignInPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = (searchParams?.get("callbackUrl") as string) || "/dashboard";
+  const { status } = useSession();
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      router.replace(callbackUrl);
+    }
+  }, [status, router, callbackUrl]);
 
   async function handleGoogleSignIn() {
     setLoading(true);
     // Redirects to Google OAuth, then back to your app
-    await signIn("google", { callbackUrl: "/" });
+    await signIn("google", { callbackUrl });
     setLoading(false);
   }
 

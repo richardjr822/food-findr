@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { signIn, useSession } from "next-auth/react";
 
 export default function LoginPage() {
+
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
@@ -13,6 +14,15 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = (searchParams?.get("callbackUrl") as string) || "/dashboard";
+  const { status } = useSession();
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      router.replace(callbackUrl);
+    }
+  }, [status, router, callbackUrl]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -44,10 +54,11 @@ export default function LoginPage() {
         setSent(true);
         // Do NOT clear the form or setLoading(false) here
         setTimeout(() => {
-          router.push("/dashboard");
+          router.replace(callbackUrl);
         }, 1200);
         return; // <-- Exit so loading stays true
       } else {
+
         setEmailError("Login failed. Please try again.");
         setLoading(false);
       }
@@ -58,7 +69,7 @@ export default function LoginPage() {
   }
 
   function handleGoogleLogin() {
-    signIn("google", { callbackUrl: "/dashboard" });
+    signIn("google", { callbackUrl });
   }
 
   return (

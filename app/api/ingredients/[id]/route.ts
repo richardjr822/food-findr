@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import clientPromise from "@/lib/mongodb";
+import { requireUser } from "@/lib/session";
 import { ObjectId } from "mongodb";
 
 export async function PUT(
@@ -9,10 +8,9 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await requireUser();
+    if (auth instanceof NextResponse) return auth; // 401
+    const { email } = auth;
 
     const { id } = await params; // await params in Next.js 15
     if (!ObjectId.isValid(id)) {
@@ -30,7 +28,7 @@ export async function PUT(
     const db = client.db();
 
     const result = await db.collection("ingredients").updateOne(
-      { _id: new ObjectId(id), userId: session.user.email },
+      { _id: new ObjectId(id), userId: email },
       {
         $set: {
           name: name.trim(),
@@ -57,10 +55,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await requireUser();
+    if (auth instanceof NextResponse) return auth; // 401
+    const { email } = auth;
 
     const { id } = await params; // await params in Next.js 15
     if (!ObjectId.isValid(id)) {
@@ -72,7 +69,7 @@ export async function DELETE(
 
     const result = await db
       .collection("ingredients")
-      .deleteOne({ _id: new ObjectId(id), userId: session.user.email });
+      .deleteOne({ _id: new ObjectId(id), userId: email });
 
     if (result.deletedCount === 0) {
       return NextResponse.json({ error: "Ingredient not found" }, { status: 404 });

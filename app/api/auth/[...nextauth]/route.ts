@@ -66,7 +66,8 @@ export const authOptions: NextAuthOptions = {
       token: any;
       user?: User;
     }) {
-      // Attach user info to session if needed
+      // Attach database user id to the session for ownership checks
+      (session.user as any).id = (token as any).uid || (token as any).sub || undefined;
       return session;
     },
     async jwt({
@@ -80,7 +81,20 @@ export const authOptions: NextAuthOptions = {
       account?: Account | null;
       profile?: Profile;
     }) {
-      // Attach user info to JWT if needed
+      // Ensure the JWT carries the database user id for later session hydration
+      if (user?.email) {
+        const dbUser = await findUserByEmail(user.email as string);
+        if (dbUser?._id) {
+          (token as any).uid = dbUser._id.toString();
+        }
+      }
+      // Fallback: if uid missing but email present on token, resolve once
+      if (!(token as any).uid && token?.email) {
+        const dbUser = await findUserByEmail(token.email as string);
+        if (dbUser?._id) {
+          (token as any).uid = dbUser._id.toString();
+        }
+      }
       return token;
     },
   },
