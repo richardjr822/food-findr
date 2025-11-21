@@ -29,7 +29,7 @@ export default function LoginPage() {
     setEmailError("");
     setPasswordError("");
     let valid = true;
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (!email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) === false) {
       setEmailError("Please enter a valid email address.");
       valid = false;
     }
@@ -40,28 +40,15 @@ export default function LoginPage() {
     if (!valid) return;
     setLoading(true);
     try {
-      const res = await signIn("credentials", {
+      await signIn("credentials", {
         email,
         password,
-        redirect: false,
+        callbackUrl,
+        redirect: true,
       });
-      if (res?.error) {
-        setEmailError(res.error);
-        setLoading(false);
-        return;
-      }
-      if (res?.ok) {
-        setSent(true);
-        // Do NOT clear the form or setLoading(false) here
-        setTimeout(() => {
-          router.replace(callbackUrl);
-        }, 1200);
-        return; // <-- Exit so loading stays true
-      } else {
-
-        setEmailError("Login failed. Please try again.");
-        setLoading(false);
-      }
+      // If redirect does not occur (edge cases), stop loading
+      setLoading(false);
+      return;
     } catch {
       setEmailError("Something went wrong. Please try again.");
       setLoading(false);
