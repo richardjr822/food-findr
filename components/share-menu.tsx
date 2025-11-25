@@ -34,6 +34,13 @@ export default function ShareMenu({ recipeId, onClose }: Props) {
     }
   }
 
+  // Prefetch the link when menu opens, so the token exists even if the user doesn't click Copy/Share.
+  useEffect(() => {
+    // Fire and forget; any error will display in the menu.
+    ensureLink().catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function bump(method: "copy" | "webshare") {
     try {
       if (!token) return;
