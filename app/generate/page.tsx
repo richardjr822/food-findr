@@ -18,7 +18,6 @@ import {
   HiChevronUp
 } from "react-icons/hi2";
 import Sidebar from "@/components/sidebar";
-import ShareMenu from "@/components/share-menu";
 import Feedback from "@/components/feedback";
 
 const MEAL_TYPES = [
@@ -92,7 +91,6 @@ function GenerateRecipeContent() {
   const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(true);
   const [expandedRecipes, setExpandedRecipes] = useState<Set<string>>(new Set());
-  const [sharingFor, setSharingFor] = useState<string | null>(null);
 
   const searchParams = useSearchParams();
   const loadSeq = useRef(0);
@@ -293,10 +291,20 @@ function GenerateRecipeContent() {
       const res = await fetch("/api/recipes/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ threadId: activeThreadId, userMsg, history }),
+        body: JSON.stringify({
+          threadId: activeThreadId,
+          userMsg,
+          history,
+          ingredientsList: combined,
+          rawPrompt: manualPrompt,
+          mealType,
+        }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "Generation failed");
+      if (!res.ok) {
+        const msg = [data?.error, data?.reason].filter(Boolean).join(": ");
+        throw new Error(msg || "Generation failed");
+      }
 
       const modelMsg: ChatMsg = {
         id: data.messageId,
@@ -681,15 +689,6 @@ function GenerateRecipeContent() {
                               )}
                               <span className="hidden sm:inline">{m.saved ? "Saved" : "Save"}</span>
                             </button>
-                            {m.saved && m.recipeId && (
-                              <button
-                                type="button"
-                                onClick={() => setSharingFor(sharingFor === m.id ? null : m.id)}
-                                className="inline-flex items-center gap-1.5 rounded-lg border-2 border-neutral-200 px-2.5 py-1.5 text-[10px] sm:text-xs font-bold text-neutral-700 hover:border-emerald-300 hover:bg-emerald-50"
-                              >
-                                Share
-                              </button>
-                            )}
                           </div>
                         </div>
 
@@ -809,11 +808,6 @@ function GenerateRecipeContent() {
                         ) : (
                           <div className="text-xs sm:text-sm text-neutral-500 text-center py-6 sm:py-8">
                             Recipe details unavailable – generate a new one.
-                          </div>
-                        )}
-                        {m.saved && m.recipeId && sharingFor === m.id && (
-                          <div className="px-2">
-                            <ShareMenu recipeId={m.recipeId} onClose={() => setSharingFor(null)} />
                           </div>
                         )}
                       </div>

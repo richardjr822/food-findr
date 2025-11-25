@@ -31,36 +31,162 @@ function isClearlyOutOfScope(text: string) {
 
   // Obvious non-food domains
   const blocked = [
-    "build a website","code","program","programming","javascript","typescript","python","java","c++","c#","react","next.js","node",
-    "deploy","vercel","docker","kubernetes","terminal","bash","powershell","github","git","sql","database",
-    "weather","travel","flight","hotel","itinerary","tourist",
-    "movie","film","series","tv show","game","gaming","cheat",
-    "sports bet","betting","odds",
-    "stock","stocks","trading","crypto","bitcoin","ethereum","nft",
-    "essay","email","poem","story","novel","lyrics","song","speech","script",
-    "math","algebra","geometry","calculus","proof","equation",
-    "medicine","diagnose","medical advice","legal","lawyer","tax advice"
+    "build a website",
+    "code",
+    "program",
+    "programming",
+    "javascript",
+    "typescript",
+    "python",
+    "java",
+    "c++",
+    "c#",
+    "react",
+    "next.js",
+    "node",
+    "deploy",
+    "vercel",
+    "docker",
+    "kubernetes",
+    "terminal",
+    "bash",
+    "powershell",
+    "github",
+    "git",
+    "sql",
+    "database",
+    "weather",
+    "travel",
+    "flight",
+    "hotel",
+    "itinerary",
+    "tourist",
+    "movie",
+    "film",
+    "series",
+    "tv show",
+    "game",
+    "gaming",
+    "cheat",
+    "sports bet",
+    "betting",
+    "odds",
+    "stock",
+    "stocks",
+    "trading",
+    "crypto",
+    "bitcoin",
+    "ethereum",
+    "nft",
+    "essay",
+    "email",
+    "poem",
+    "story",
+    "novel",
+    "lyrics",
+    "song",
+    "speech",
+    "script",
+    "math",
+    "algebra",
+    "geometry",
+    "calculus",
+    "proof",
+    "equation",
+    "medicine",
+    "diagnose",
+    "medical advice",
+    "legal",
+    "lawyer",
+    "tax advice",
   ];
-  if (blocked.some(k => s.includes(k))) return true;
+  if (blocked.some((k) => s.includes(k))) return true;
 
   // Positive food signals
   const foodHints = [
-    "recipe","ingredients","cook","cooking","bake","baking","grill","fry","saute","sauté","meal","dish","serve",
-    "nutrition","calories","protein","carbs","fat","diet","cuisine","marinate","simmer","boil","roast","season",
-    "pan","oven","skillet","sauce","garnish","prep","servings"
+    "recipe",
+    "ingredients",
+    "cook",
+    "cooking",
+    "bake",
+    "baking",
+    "grill",
+    "fry",
+    "saute",
+    "sauté",
+    "meal",
+    "dish",
+    "serve",
+    "nutrition",
+    "calories",
+    "protein",
+    "carbs",
+    "fat",
+    "diet",
+    "cuisine",
+    "marinate",
+    "simmer",
+    "boil",
+    "roast",
+    "season",
+    "pan",
+    "oven",
+    "skillet",
+    "sauce",
+    "garnish",
+    "prep",
+    "servings",
   ];
-  const hasFoodSignal = foodHints.some(k => s.includes(k));
+  const hasFoodSignal = foodHints.some((k) => s.includes(k));
   return !hasFoodSignal;
+}
+
+function normalizeList(list: any[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const it of Array.isArray(list) ? list : []) {
+    const s = String(it || "").trim();
+    if (!s) continue;
+    const key = s.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(s);
+  }
+  return out;
+}
+
+function normalizeInstructions(list: any[]): string[] {
+  const cleaned = normalizeList(list).map((s) =>
+    s
+      .replace(/^\s*step\s*\d+[:.)-]?\s*/i, "")
+      .replace(/^\s*\d+[:.)-]\s*/, "")
+      .trim()
+  );
+  return cleaned;
+}
+
+function postProcessRecipe(recipe: RecipeResponse): RecipeResponse {
+  return {
+    ...recipe,
+    title: String(recipe.title || "AI-Generated Recipe").trim(),
+    ingredients: normalizeList(recipe.ingredients || []),
+    instructions: normalizeInstructions(recipe.instructions || []),
+    nutrition: recipe.nutrition || { calories: 0, protein: 0, carbs: 0, fat: 0 },
+  };
 }
 
 function buildPrompt({
   userText,
   mealType,
   diet,
+  ingredientsList,
+  userFreeform,
 }: {
   userText: string;
   mealType?: string;
   diet?: string[];
+  ingredientsList?: string[];
+  userFreeform?: string;
 }) {
   const meal = mealType ? `Meal type: ${mealType}.` : "Meal type: any.";
 
@@ -79,14 +205,25 @@ function buildPrompt({
     `Scope: Only handle topics related to food, cooking, recipes, or nutrition. ` +
     `If the user request is outside this scope, respond with strict JSON: {"error":"OUT_OF_SCOPE","reason":string} and nothing else.`;
 
+  const ingredientsBlock = ingredientsList && ingredientsList.length
+    ? `User ingredients (use primarily, avoid inventing uncommon items): ${ingredientsList.join(", ")}.`
+    : "";
+
+  const freeformBlock = userFreeform && userFreeform.trim()
+    ? `Additional context from user: ${userFreeform.trim()}`
+    : "";
+
   return `
-You are a culinary and nutrition assistant. Create ONE complete recipe using the user's free-form prompt.
+You are a culinary and nutrition assistant. Create ONE complete recipe using the user's inputs.
 
 ${scopeGuard}
 ${cuisineRule}
 Respect dietary restrictions strictly. Prefer pantry staples (oil, salt, pepper, common spices). Avoid uncommon items.
 
-Respond ONLY with strict JSON. No markdown, no commentary.
+${ingredientsBlock}
+${freeformBlock}
+
+Respond ONLY with strict JSON. No markdown, no commentary, no code fences.
 
 JSON schema:
 {
@@ -117,6 +254,8 @@ Constraints:
 - Estimate nutrition per serving.
 - Keep measurements consistent (metric or US, not mixed).
 - Title should be catchy but specific.
+- Ingredients must be concrete (avoid vague terms like "some"), and 8-20 items.
+- Instructions must be step-by-step, 6-16 steps, no leading numbering like "Step 1:" (just the text).
 `;
 }
 
@@ -186,9 +325,14 @@ export async function POST(req: NextRequest) {
     const { threadId } = body;
 
     const userMsg: string = String(body?.userMsg ?? "").trim();
+    const rawPrompt: string = String(body?.rawPrompt ?? "").trim();
+    const ingredientsList: string[] = Array.isArray(body?.ingredientsList)
+      ? body.ingredientsList.map((s: any) => String(s || "").trim()).filter(Boolean).slice(0, 40)
+      : [];
     const ingredientsFallback: string = String(body?.ingredients ?? "").trim();
     const mealType = body?.mealType ? String(body.mealType) : "";
     const diet = Array.isArray(body?.diet) ? body.diet.map(String) : [];
+
     const history: Msg[] = Array.isArray(body?.history)
       ? body.history
           .map((m: any): Msg => ({
@@ -199,7 +343,13 @@ export async function POST(req: NextRequest) {
           .slice(-12)
       : [];
 
-    const userText = userMsg || ingredientsFallback;
+    const structuredParts = [
+      ingredientsList.length ? `Ingredients: ${ingredientsList.join(", ")}` : "",
+      mealType ? `Meal type: ${mealType}` : "",
+      rawPrompt ? `Notes: ${rawPrompt}` : "",
+    ].filter(Boolean);
+    const structured = structuredParts.join(" | ");
+    const userText = userMsg || structured || ingredientsFallback;
 
     // Food-only pre-check (fast heuristic)
     if (isClearlyOutOfScope(userText)) {
@@ -229,7 +379,7 @@ export async function POST(req: NextRequest) {
       })),
     });
 
-    const userPrompt = buildPrompt({ userText, mealType, diet });
+    const userPrompt = buildPrompt({ userText, mealType, diet, ingredientsList, userFreeform: rawPrompt });
     const result = await chat.sendMessage(userPrompt);
     let text = result.response.text();
 
@@ -260,7 +410,32 @@ export async function POST(req: NextRequest) {
       return send({ error: "Request is outside recipe scope.", reason }, 422);
     }
 
-    const recipe = parsed as RecipeResponse;
+    let recipe = postProcessRecipe(parsed as RecipeResponse);
+
+    // Attempt a repair pass if incomplete
+    if (!recipe.title || !recipe.ingredients?.length || !recipe.instructions?.length) {
+      const repairPrompt = `${userPrompt}\nThe previous JSON was incomplete. Return STRICT JSON only per schema with non-empty title, 8-20 ingredients, 6-16 instructions, and nutrition numbers.`;
+      try {
+        const repair = await chat.sendMessage(repairPrompt);
+        const repaired = coerceRecipe(safeParseJson(repair.response.text()));
+        recipe = postProcessRecipe(repaired);
+      } catch {}
+    }
+
+    // If user provided ingredients and coverage is too low, request a targeted fix once
+    if (ingredientsList.length) {
+      const lower = new Set(recipe.ingredients.map((i) => i.toLowerCase()));
+      const covered = ingredientsList.filter((i) => lower.has(String(i).toLowerCase())).length;
+      const minRequired = Math.min(ingredientsList.length, Math.max(1, Math.ceil(ingredientsList.length * 0.6)));
+      if (covered < minRequired) {
+        const enforcePrompt = `${userPrompt}\nEnsure the recipe USES these user ingredients prominently: ${ingredientsList.join(", ")}. Return STRICT JSON only.`;
+        try {
+          const fix = await chat.sendMessage(enforcePrompt);
+          const fixed = coerceRecipe(safeParseJson(fix.response.text()));
+          recipe = postProcessRecipe(fixed);
+        } catch {}
+      }
+    }
 
     if (!recipe.title || !recipe.ingredients?.length || !recipe.instructions?.length) {
       return send({ error: "Model returned incomplete data. Please try again." }, 502);
