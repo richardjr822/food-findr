@@ -8,7 +8,37 @@ export const dynamic = "force-dynamic";
 export default async function ShareRecipePage({ params }: { params: { token: string } }) {
   const token = params.token;
   const share = await getShareByToken(token);
-  if (!share) return notFound();
+  if (!share) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-neutral-50 via-white to-neutral-50">
+        <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-neutral-200/50 shadow-sm">
+          <div className="mx-auto max-w-5xl px-6 py-4 flex items-center justify-between">
+            <a href="/" className="flex items-center gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100 shadow-sm">
+                <svg className="h-6 w-6 text-emerald-700" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M3 11c0 4 3 7 9 7s9-3 9-7" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M7 10c1-2 3-3 5-3" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M15 6c1 1 1 3 0 4" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M9 4c.6 0 1.6.7 2 1.4" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </span>
+              <span className="font-bold text-xl tracking-tight text-neutral-800">FoodFindr</span>
+            </a>
+          </div>
+        </header>
+        <main className="mx-auto max-w-3xl px-6 py-12">
+          <div className="bg-white rounded-2xl shadow-xl border border-neutral-200 p-6 text-center">
+            <div className="text-2xl font-extrabold text-neutral-900 mb-2">This share link is invalid or has expired.</div>
+            <p className="text-neutral-600">Ask the owner to create a new link, or sign in to generate your own recipes.</p>
+            <div className="mt-4 flex gap-2 justify-center">
+              <a href="/" className="rounded-lg border-2 border-neutral-200 px-4 py-2 text-sm font-semibold text-neutral-800 hover:bg-neutral-50">Home</a>
+              <a href="/auth/login" className="rounded-lg bg-emerald-600 text-white px-4 py-2 text-sm font-bold hover:bg-emerald-700">Log in</a>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   try {
     await bumpShare(token);
@@ -20,7 +50,37 @@ export default async function ShareRecipePage({ params }: { params: { token: str
   if (!recipe && ObjectId.isValid(share.recipeId)) {
     recipe = await db.collection("recipes").findOne({ _id: new ObjectId(share.recipeId) } as any);
   }
-  if (!recipe) return notFound();
+  if (!recipe) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-neutral-50 via-white to-neutral-50">
+        <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-neutral-200/50 shadow-sm">
+          <div className="mx-auto max-w-5xl px-6 py-4 flex items-center justify-between">
+            <a href="/" className="flex items-center gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100 shadow-sm">
+                <svg className="h-6 w-6 text-emerald-700" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M3 11c0 4 3 7 9 7s9-3 9-7" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M7 10c1-2 3-3 5-3" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M15 6c1 1 1 3 0 4" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M9 4c.6 0 1.6.7 2 1.4" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </span>
+              <span className="font-bold text-xl tracking-tight text-neutral-800">FoodFindr</span>
+            </a>
+          </div>
+        </header>
+        <main className="mx-auto max-w-3xl px-6 py-12">
+          <div className="bg-white rounded-2xl shadow-xl border border-neutral-200 p-6 text-center">
+            <div className="text-2xl font-extrabold text-neutral-900 mb-2">Recipe not found</div>
+            <p className="text-neutral-600">The linked recipe no longer exists. Ask the owner to share again.</p>
+            <div className="mt-4 flex gap-2 justify-center">
+              <a href="/" className="rounded-lg border-2 border-neutral-200 px-4 py-2 text-sm font-semibold text-neutral-800 hover:bg-neutral-50">Home</a>
+              <a href="/auth/login" className="rounded-lg bg-emerald-600 text-white px-4 py-2 text-sm font-bold hover:bg-emerald-700">Log in</a>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-neutral-50 via-white to-neutral-50">
