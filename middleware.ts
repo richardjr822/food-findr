@@ -21,8 +21,6 @@ function isPublicPath(pathname: string): boolean {
   // No public APIs except NextAuth
   if (pathname.startsWith("/auth/reset")) return true;
   if (pathname.startsWith("/auth/forgot")) return true;
-  if (pathname.startsWith("/share/")) return true;
-  if (pathname === "/share") return true;
   return false;
 }
 

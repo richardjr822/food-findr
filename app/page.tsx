@@ -170,29 +170,29 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-neutral-50 via-white to-neutral-50 font-sans text-neutral-900 antialiased">
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-neutral-200/50 shadow-sm" role="banner">
-        <div className="mx-auto max-w-6xl px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3 group focus:outline-none focus:ring-2 focus:ring-emerald-200 rounded-md" aria-label="Go to homepage">
-            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100 shadow-md ring-1 ring-emerald-100 transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
-              <svg className="h-7 w-7 text-emerald-700" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-xl border-b border-neutral-200/50 shadow-sm" role="banner">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2 sm:gap-3 group focus:outline-none focus:ring-2 focus:ring-emerald-200 rounded-md" aria-label="Go to homepage">
+            <span className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl sm:rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100 shadow-md ring-1 ring-emerald-100 transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
+              <svg className="h-5 w-5 sm:h-7 sm:w-7 text-emerald-700" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path d="M3 11c0 4 3 7 9 7s9-3 9-7" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
                 <path d="M7 10c1-2 3-3 5-3" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
                 <path d="M15 6c1 1 1 3 0 4" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
                 <path d="M9 4c.6 0 1.6.7 2 1.4" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </span>
-            <span className="font-bold text-2xl tracking-tight text-neutral-800">FoodFindr</span>
+            <span className="font-bold text-lg sm:text-2xl tracking-tight text-neutral-800">FoodFindr</span>
           </Link>
           <nav className="flex items-center gap-3" role="navigation" aria-label="Main navigation">
             <Link
               href="/auth/login"
-              className="inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100 focus:outline-none focus:ring-2 focus:ring-emerald-100 transition-all duration-200 hover:-translate-y-0.5"
+              className="inline-flex items-center justify-center rounded-lg px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-neutral-700 hover:bg-neutral-100 focus:outline-none focus:ring-2 focus:ring-emerald-100 transition-all duration-200 hover:-translate-y-0.5 active:scale-95"
             >
               Log in
             </Link>
             <Link
               href="/auth/signup"
-              className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-emerald-600 to-emerald-700 px-5 py-2 text-sm text-white font-semibold shadow-md hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-200 hover:-translate-y-0.5"
+              className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-emerald-600 to-emerald-700 px-4 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm text-white font-semibold shadow-md hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-200 hover:-translate-y-0.5 active:scale-95"
             >
               Start for free
             </Link>
@@ -200,7 +200,7 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-6 py-16 sm:py-24" role="main">
+      <main className="mx-auto max-w-6xl px-4 sm:px-6 py-12 sm:py-16 lg:py-24" role="main">
         {/* Hero Section */}
         <section className="relative grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center mb-24 sm:mb-32" aria-labelledby="hero-heading">
           <div className="space-y-7 z-10">
@@ -219,13 +219,13 @@ export default function Home() {
                 FoodFindr reveals tasty dishes from what's already in your kitchen. Discover AI-powered recipes for any mood or season.
               </Balancer>
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 pt-2">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-2">
               <Link
                 href="/auth/login"
-                className="group inline-flex items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 px-8 py-4 text-white font-bold shadow-lg hover:shadow-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-200 hover:-translate-y-1"
+                className="group inline-flex items-center justify-center gap-2 sm:gap-3 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 px-6 sm:px-8 py-3.5 sm:py-4 text-sm sm:text-base text-white font-bold shadow-lg hover:shadow-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-200 hover:-translate-y-1 active:scale-95"
                 aria-label="Generate a recipe"
               >
-                <svg className="w-5 h-5 text-amber-300 group-hover:rotate-90 transition-transform duration-300" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 text-amber-300 group-hover:rotate-90 transition-transform duration-300" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <path d="M12 5v14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                   <path d="M5 12h14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
@@ -233,7 +233,7 @@ export default function Home() {
               </Link>
               <Link
                 href="/auth/signup"
-                className="inline-flex items-center justify-center rounded-xl border-2 border-neutral-200 px-8 py-4 text-neutral-800 bg-white hover:bg-neutral-50 font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-neutral-200 hover:-translate-y-1 hover:border-neutral-300"
+                className="inline-flex items-center justify-center rounded-xl border-2 border-neutral-200 px-6 sm:px-8 py-3.5 sm:py-4 text-sm sm:text-base text-neutral-800 bg-white hover:bg-neutral-50 font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-neutral-200 hover:-translate-y-1 hover:border-neutral-300 active:scale-95"
                 aria-label="Start for free"
               >
                 Start for free
@@ -242,18 +242,18 @@ export default function Home() {
           </div>
           
           {/* Parallax Hero Image */}
-          <div className="relative w-full h-[400px] sm:h-[500px] lg:h-[550px] overflow-hidden rounded-3xl shadow-2xl ring-1 ring-neutral-200">
+          <div className="relative w-full h-[300px] sm:h-[400px] lg:h-[550px] overflow-hidden rounded-2xl sm:rounded-3xl shadow-2xl ring-1 ring-neutral-200">
             <Image
               priority={true}
               fill={true}
               src="https://images.unsplash.com/photo-1569718212165-3a8278d5f624?ixlib=rb-4.1.0&auto=format&fit=crop&q=80&w=2080"
               alt="A healthy, beautifully plated meal with salmon and vegetables"
-              className="object-cover transition-transform duration-75"
+              className="object-cover transition-transform duration-100 ease-out"
               style={{
-                transform: `translateY(${scrollY * 0.3}px) scale(1.1)`,
+                transform: `translateY(${scrollY * 0.2}px) scale(1.05)`,
               }}
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-neutral-900/30 via-transparent to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-neutral-900/40 via-transparent to-transparent" />
           </div>
         </section>
 
@@ -271,7 +271,7 @@ export default function Home() {
             {howItWorksSteps.map((step, i) => (
               <div
                 key={i}
-                className={`relative flex flex-col items-start bg-gradient-to-br ${step.color} rounded-3xl shadow-md border border-neutral-100 p-8 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl group`}
+                className={`relative flex flex-col items-start bg-gradient-to-br ${step.color} rounded-2xl sm:rounded-3xl shadow-md border border-neutral-100 p-6 sm:p-8 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl group cursor-pointer`}
               >
                 <div className="mb-5 group-hover:scale-110 transition-transform duration-300">
                   {step.icon}
@@ -297,7 +297,7 @@ export default function Home() {
             {featuresList.map((f) => (
               <div
                 key={f.title}
-                className={`flex flex-col items-center rounded-3xl ${f.bg} p-8 shadow-md border border-neutral-100 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl group`}
+                className={`flex flex-col items-center rounded-2xl sm:rounded-3xl ${f.bg} p-6 sm:p-8 shadow-md border border-neutral-100 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl group cursor-pointer`}
               >
                 <div className="h-14 w-14 flex items-center justify-center rounded-2xl mb-4 bg-white shadow-md group-hover:scale-110 transition-transform duration-300" aria-hidden="true">
                   {f.icon}
@@ -318,16 +318,16 @@ export default function Home() {
             <p className="text-lg text-neutral-600 max-w-2xl mx-auto">
               Join thousands of home cooks discovering delicious recipes every day
             </p>
-            <div className="flex flex-col sm:flex-row items-center gap-4 justify-center pt-4">
+            <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 justify-center pt-4">
               <Link
                 href="/auth/signup"
-                className="rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 px-10 py-5 text-white font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-200 hover:-translate-y-1"
+                className="w-full sm:w-auto rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 px-8 sm:px-10 py-4 sm:py-5 text-white font-bold text-base sm:text-lg shadow-lg hover:shadow-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-200 hover:-translate-y-1 active:scale-95 text-center"
               >
                 Start for free
               </Link>
               <Link
                 href="/auth/login"
-                className="rounded-xl border-2 border-neutral-200 px-10 py-5 text-neutral-800 bg-white text-lg font-semibold hover:bg-neutral-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-neutral-200 hover:-translate-y-1 hover:border-neutral-300"
+                className="w-full sm:w-auto rounded-xl border-2 border-neutral-200 px-8 sm:px-10 py-4 sm:py-5 text-neutral-800 bg-white text-base sm:text-lg font-semibold hover:bg-neutral-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-neutral-200 hover:-translate-y-1 hover:border-neutral-300 active:scale-95 text-center"
               >
                 Log in to generate
               </Link>

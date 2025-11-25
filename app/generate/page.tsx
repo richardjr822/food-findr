@@ -403,19 +403,19 @@ function GenerateRecipeContent() {
       <Sidebar />
 
       <main className="flex-1 h-full overflow-y-auto relative z-10">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-3 sm:py-4 lg:py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
           {/* Header */}
-          <div className="flex items-center justify-between gap-3 mb-4 sm:mb-6">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="flex items-center justify-center h-9 w-9 sm:h-11 sm:w-11 rounded-xl sm:rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-lg flex-shrink-0">
-                <HiOutlineSparkles className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 sm:mb-8">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center h-12 w-12 sm:h-14 sm:w-14 rounded-2xl bg-gradient-to-br from-emerald-400 via-emerald-500 to-teal-600 shadow-lg ring-2 ring-emerald-100">
+                <HiOutlineSparkles className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
               </div>
               <div className="min-w-0">
-                <h1 className="text-base sm:text-xl lg:text-2xl font-bold text-neutral-900 tracking-tight">
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-neutral-900 tracking-tight">
                   AI Recipe Generator
                 </h1>
-                <p className="text-neutral-600 text-[10px] sm:text-xs hidden sm:block">
-                  Generate smart, personalized recipes instantly!
+                <p className="text-neutral-600 text-sm sm:text-base">
+                  Create delicious recipes instantly ✨
                 </p>
               </div>
             </div>
@@ -423,16 +423,16 @@ function GenerateRecipeContent() {
             {/* Mobile Form Toggle */}
             <button
               onClick={() => setShowForm(!showForm)}
-              className="lg:hidden flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 text-white text-xs font-bold shadow-md hover:bg-emerald-700 transition"
+              className="lg:hidden flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-sm font-bold shadow-lg hover:shadow-xl transition-all active:scale-95 min-h-[44px]"
             >
-              <HiOutlineSparkles className="h-3.5 w-3.5" />
-              <span>{showForm ? 'Hide' : 'New Recipe'}</span>
+              <HiOutlineSparkles className="h-4 w-4" />
+              <span>{showForm ? 'Hide Form' : 'New Recipe'}</span>
             </button>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 sm:gap-4 lg:gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
             {/* Left Column - Form */}
-            <div className={`lg:col-span-2 ${showForm ? 'block' : 'hidden lg:block'}`}>
+            <div className={`lg:col-span-1 ${showForm ? 'block' : 'hidden lg:block'}`}>
               <div className="sticky top-3 sm:top-4">
                 <form
                   className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-xl border border-emerald-100 p-3 sm:p-4 lg:p-5 space-y-3 sm:space-y-4"
@@ -555,7 +555,7 @@ function GenerateRecipeContent() {
             </div>
 
             {/* Right Column - Messages */}
-            <div className={`lg:col-span-3 space-y-3 sm:space-y-4 ${!showForm ? 'block' : 'hidden lg:block'}`}>
+            <div className={`lg:col-span-2 space-y-4 sm:space-y-6 ${!showForm ? 'block' : 'hidden lg:block'}`}>
               {error && (
                 <div className="bg-rose-50 border-2 border-rose-200 rounded-xl p-3 sm:p-4 text-rose-700 text-center font-semibold shadow-lg animate-in slide-in-from-top">
                   <div className="flex items-center justify-center gap-2">

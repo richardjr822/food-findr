@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { signIn, useSession } from "next-auth/react"; 
 import { useRouter, useSearchParams } from "next/navigation";
+import { HiOutlineEye, HiOutlineEyeSlash } from "react-icons/hi2";
 import EmailConfirmation from "@/components/emailconfirmation";
 
 function getPasswordStrength(password: string) {
@@ -46,6 +47,8 @@ export default function SignupPage() {
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [confirmError, setConfirmError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const passwordStrength = getPasswordStrength(password);
 
@@ -266,22 +269,36 @@ export default function SignupPage() {
                   <label htmlFor="password" className="block text-xs font-medium text-neutral-800 mb-1">
                     Password
                   </label>
-                  <input
-                    id="password"
-                    type="password"
-                    autoComplete="new-password"
-                    value={password}
-                    onChange={(e) => {
-                      setPassword(e.target.value);
-                      if (passwordError) setPasswordError("");
-                    }}
-                    placeholder="Create a strong password"
-                    required
-                    aria-describedby={passwordError ? "password-error" : "password-help"}
-                    className={`w-full rounded-md border px-3 py-2 text-sm placeholder-neutral-400 focus:outline-none focus:ring-2 transition ${
-                      passwordError ? "border-red-300 focus:ring-red-200" : "border-neutral-300 focus:ring-emerald-200"
-                    }`}
-                  />
+                  <div className="relative">
+                    <input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      autoComplete="new-password"
+                      value={password}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        if (passwordError) setPasswordError("");
+                      }}
+                      placeholder="Create a strong password"
+                      required
+                      aria-describedby={passwordError ? "password-error" : "password-help"}
+                      className={`w-full rounded-md border px-3 py-2 pr-10 text-sm placeholder-neutral-400 focus:outline-none focus:ring-2 transition ${
+                        passwordError ? "border-red-300 focus:ring-red-200" : "border-neutral-300 focus:ring-emerald-200"
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-lg hover:bg-neutral-100 transition"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? (
+                        <HiOutlineEyeSlash className="h-4 w-4 text-neutral-400" />
+                      ) : (
+                        <HiOutlineEye className="h-4 w-4 text-neutral-400" />
+                      )}
+                    </button>
+                  </div>
                   {/* Show password requirements and strength only when typing */}
                   {password && (
                     <>
@@ -316,22 +333,36 @@ export default function SignupPage() {
                   <label htmlFor="confirm" className="block text-xs font-medium text-neutral-800 mb-1">
                     Confirm password
                   </label>
-                  <input
-                    id="confirm"
-                    type="password"
-                    autoComplete="new-password"
-                    value={confirm}
-                    onChange={(e) => {
-                      setConfirm(e.target.value);
-                      if (confirmError) setConfirmError("");
-                    }}
-                    placeholder="Re-enter your password"
-                    required
-                    aria-describedby={confirmError ? "confirm-error" : undefined}
-                    className={`w-full rounded-md border px-3 py-2 text-sm placeholder-neutral-400 focus:outline-none focus:ring-2 transition ${
-                      confirmError ? "border-red-300 focus:ring-red-200" : "border-neutral-300 focus:ring-emerald-200"
-                    }`}
-                  />
+                  <div className="relative">
+                    <input
+                      id="confirm"
+                      type={showConfirm ? "text" : "password"}
+                      autoComplete="new-password"
+                      value={confirm}
+                      onChange={(e) => {
+                        setConfirm(e.target.value);
+                        if (confirmError) setConfirmError("");
+                      }}
+                      placeholder="Re-enter your password"
+                      required
+                      aria-describedby={confirmError ? "confirm-error" : undefined}
+                      className={`w-full rounded-md border px-3 py-2 pr-10 text-sm placeholder-neutral-400 focus:outline-none focus:ring-2 transition ${
+                        confirmError ? "border-red-300 focus:ring-red-200" : "border-neutral-300 focus:ring-emerald-200"
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirm(!showConfirm)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-lg hover:bg-neutral-100 transition"
+                      aria-label={showConfirm ? "Hide password" : "Show password"}
+                    >
+                      {showConfirm ? (
+                        <HiOutlineEyeSlash className="h-4 w-4 text-neutral-400" />
+                      ) : (
+                        <HiOutlineEye className="h-4 w-4 text-neutral-400" />
+                      )}
+                    </button>
+                  </div>
                   {confirmError && (
                     <p id="confirm-error" className="mt-1 text-xs text-red-600" role="alert">
                       {confirmError}

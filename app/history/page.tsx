@@ -124,123 +124,159 @@ export default function HistoryPage() {
   const hasActiveFilters = !!(searchQuery || sortBy !== "newest" || timeFilter !== "all");
 
   return (
-    <div className="flex h-screen overflow-hidden relative bg-gradient-to-br from-emerald-50/30 via-white to-teal-50/20">
+    <div className="flex h-screen overflow-hidden relative bg-white">
       {/* Background Pattern */}
       <div
         className="absolute inset-0 z-0 pointer-events-none"
         aria-hidden="true"
         style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2310b981' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+          backgroundImage:
+            "url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1600&q=80&auto=format&fit=crop')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          opacity: 0.08,
+          filter: "brightness(1)",
         }}
       />
       
       <Sidebar />
 
       <main className="flex-1 h-full overflow-y-auto relative z-10">
-        <div className="h-full w-full px-3 sm:px-4 lg:px-8 py-3 sm:py-4 lg:py-6">
+        <div className="h-full w-full px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-7xl mx-auto">
           {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="flex items-center justify-center h-9 w-9 sm:h-11 sm:w-11 rounded-xl sm:rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-lg flex-shrink-0">
-                <HiOutlineClock className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 sm:mb-8">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center h-12 w-12 sm:h-14 sm:w-14 rounded-2xl bg-gradient-to-br from-emerald-400 via-emerald-500 to-teal-600 shadow-lg ring-2 ring-emerald-100">
+                <HiOutlineClock className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
               </div>
               <div className="min-w-0">
-                <h1 className="text-base sm:text-xl lg:text-2xl font-bold text-neutral-900 tracking-tight truncate">
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-neutral-900 tracking-tight">
                   Recipe History
                 </h1>
-                <p className="text-neutral-600 text-[10px] sm:text-xs">
+                <p className="text-neutral-600 text-xs sm:text-sm">
                   {filteredAndSortedThreads.length} {filteredAndSortedThreads.length === 1 ? "conversation" : "conversations"}
                   {hasActiveFilters && " (filtered)"}
                 </p>
               </div>
             </div>
 
-            {/* Filter Toggle Button (Mobile) */}
+            {/* Filter Toggle Button */}
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className="sm:hidden flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border-2 border-neutral-200 bg-white text-neutral-700 font-semibold text-xs hover:border-emerald-300 transition"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-sm font-semibold transition-all active:scale-95 shadow-sm hover:shadow min-h-[44px]"
             >
-              <HiOutlineFunnel className="h-3.5 w-3.5" />
-              Filters
+              <HiOutlineFunnel className="h-4 w-4" />
+              <span>Filters</span>
+              {showFilters ? <HiOutlineXMark className="h-4 w-4" /> : <HiOutlineTag className="h-4 w-4" />}
             </button>
           </div>
 
-          {/* Search & Filters */}
-          <div className={`mb-4 sm:mb-6 space-y-3 sm:space-y-4 ${showFilters ? 'block' : 'hidden sm:block'}`}>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
-              {/* Search */}
-              <div className="relative lg:col-span-2">
-                <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-neutral-400" />
-                <input
-                  type="text"
-                  placeholder="Search conversations..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 sm:pl-10 pr-9 sm:pr-10 py-2 sm:py-2.5 rounded-xl border-2 border-neutral-200 bg-white text-xs sm:text-sm text-neutral-800 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-300 transition"
-                />
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg hover:bg-neutral-100 transition"
-                    aria-label="Clear search"
+          {/* Search & Filters - Collapsible */}
+          {showFilters && (
+            <div className="mb-6 bg-white rounded-xl sm:rounded-2xl border-2 border-neutral-200 p-4 sm:p-5 shadow-lg animate-in slide-in-from-top duration-200 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                {/* Search */}
+                <div className="lg:col-span-2">
+                  <label className="flex items-center gap-2 text-sm font-bold text-neutral-900 mb-2">
+                    <HiOutlineMagnifyingGlass className="h-4 w-4 text-emerald-600" />
+                    Search
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Search conversations..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl border-2 border-neutral-200 bg-neutral-50 text-sm sm:text-base text-neutral-800 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 focus:bg-white transition-all min-h-[48px]"
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery("")}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg hover:bg-neutral-200 transition"
+                        aria-label="Clear search"
+                      >
+                        <HiOutlineXMark className="h-4 w-4 text-neutral-500" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Sort */}
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-bold text-neutral-900 mb-2">
+                    <HiOutlineClock className="h-4 w-4 text-emerald-600" />
+                    Sort By
+                  </label>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as SortOption)}
+                    className="w-full px-4 py-3 rounded-xl border-2 border-neutral-200 bg-neutral-50 text-sm sm:text-base text-neutral-800 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 focus:bg-white transition-all min-h-[48px]"
                   >
-                    <HiOutlineXMark className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-neutral-400" />
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
+                    <option value="title">A-Z (Title)</option>
+                  </select>
+                </div>
+
+                {/* Time filter */}
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-bold text-neutral-900 mb-2">
+                    <HiOutlineCalendar className="h-4 w-4 text-emerald-600" />
+                    Time Period
+                  </label>
+                  <select
+                    value={timeFilter}
+                    onChange={(e) => setTimeFilter(e.target.value as TimeFilter)}
+                    className="w-full px-4 py-3 rounded-xl border-2 border-neutral-200 bg-neutral-50 text-sm sm:text-base text-neutral-800 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 focus:bg-white transition-all min-h-[48px]"
+                  >
+                    <option value="all">All Time</option>
+                    <option value="today">Today</option>
+                    <option value="week">This Week</option>
+                    <option value="month">This Month</option>
+                    <option value="older">Older</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Clear Filters Button */}
+              {hasActiveFilters && (
+                <div className="flex justify-end pt-2">
+                  <button
+                    onClick={() => {
+                      setSearchQuery("");
+                      setSortBy("newest");
+                      setTimeFilter("all");
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-all active:scale-95"
+                  >
+                    <HiOutlineXMark className="h-4 w-4" />
+                    Clear All Filters
                   </button>
-                )}
-              </div>
-
-              {/* Sort */}
-              <div>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as SortOption)}
-                  className="w-full px-3 py-2 sm:py-2.5 rounded-xl border-2 border-neutral-200 bg-white text-xs sm:text-sm text-neutral-800 focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-300 transition"
-                >
-                  <option value="newest">Newest First</option>
-                  <option value="oldest">Oldest First</option>
-                  <option value="title">A-Z (Title)</option>
-                </select>
-              </div>
-
-              {/* Time filter */}
-              <div>
-                <select
-                  value={timeFilter}
-                  onChange={(e) => setTimeFilter(e.target.value as TimeFilter)}
-                  className="w-full px-3 py-2 sm:py-2.5 rounded-xl border-2 border-neutral-200 bg-white text-xs sm:text-sm text-neutral-800 focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-300 transition"
-                >
-                  <option value="all">All Time</option>
-                  <option value="today">Today</option>
-                  <option value="week">This Week</option>
-                  <option value="month">This Month</option>
-                  <option value="older">Older</option>
-                </select>
-              </div>
+                </div>
+              )}
             </div>
+          )}
 
-            {hasActiveFilters && (
-              <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl px-3 sm:px-4 py-2">
-                <span className="text-xs sm:text-sm text-emerald-700 font-medium">Filters active</span>
-                <button
-                  onClick={() => {
-                    setSearchQuery("");
-                    setSortBy("newest");
-                    setTimeFilter("all");
-                  }}
-                  className="text-xs sm:text-sm text-emerald-700 font-semibold hover:text-emerald-800 underline transition"
-                >
-                  Clear All
-                </button>
-              </div>
-            )}
-          </div>
+          {/* Active Filters Indicator */}
+          {!showFilters && hasActiveFilters && (
+            <div className="mb-4 flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+              <HiOutlineFunnel className="h-4 w-4" />
+              <span className="font-semibold">Filters active</span>
+              <button
+                onClick={() => setShowFilters(true)}
+                className="ml-auto text-emerald-600 hover:text-emerald-800 underline font-medium"
+              >
+                View
+              </button>
+            </div>
+          )}
 
           {/* Loading */}
           {loading && (
             <div className="flex items-center justify-center py-12 sm:py-20">
               <div className="flex flex-col items-center gap-3">
                 <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full border-4 border-emerald-200 border-t-emerald-600 animate-spin" />
-                <span className="text-xs sm:text-sm text-neutral-500 font-medium">Loading history...</span>
+                <span className="text-sm sm:text-base">Loading history...</span>
               </div>
             </div>
           )}
@@ -257,16 +293,23 @@ export default function HistoryPage() {
 
           {/* Empty */}
           {!loading && !error && threads.length === 0 && (
-            <div className="flex flex-col items-center justify-center min-h-[250px] sm:minh-[400px] bg-gradient-to-br from-emerald-50/50 to-white rounded-2xl sm:rounded-3xl border-2 border-dashed border-emerald-200 p-6 sm:p-8">
-              <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-2xl bg-gradient-to-br from-emerald-100 to-emerald-200 flex items-center justify-center mb-3 sm:mb-4">
-                <HiOutlineClock className="h-7 w-7 sm:h-8 sm:w-8 text-emerald-600" />
+            <div className="flex flex-col items-center justify-center min-h-[250px] sm:min-h-[400px] bg-gradient-to-br from-emerald-50/50 via-white to-neutral-50 rounded-2xl sm:rounded-3xl border-2 border-dashed border-emerald-200 p-6 sm:p-8">
+              <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl bg-gradient-to-br from-emerald-100 to-emerald-200 flex items-center justify-center mb-4 shadow-sm">
+                <HiOutlineClock className="h-8 w-8 sm:h-10 sm:w-10 text-emerald-600" />
               </div>
-              <h3 className="text-base sm:text-lg font-bold text-neutral-700 mb-1 sm:mb-2 text-center">
+              <h3 className="text-lg sm:text-xl font-bold text-neutral-800 mb-2 text-center">
                 No conversation history yet
               </h3>
-              <p className="text-xs sm:text-sm text-neutral-500 text-center max-w-xs">
+              <p className="text-sm sm:text-base text-neutral-600 text-center max-w-sm mb-6">
                 Start generating recipes to see your conversations here!
               </p>
+              <button
+                onClick={() => router.push('/generate')}
+                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 active:scale-95 min-h-[48px]"
+              >
+                <HiOutlineSparkles className="h-5 w-5" />
+                Generate Recipe
+              </button>
             </div>
           )}
 
@@ -282,10 +325,10 @@ export default function HistoryPage() {
 
                 return (
                   <div key={key} className="space-y-3 sm:space-y-4">
-                    <div className="flex items-center gap-2 px-1">
-                      <HiOutlineCalendar className="h-4 w-4 text-emerald-600" />
-                      <h2 className="text-sm sm:text-base font-bold text-neutral-700">{label}</h2>
-                      <span className="text-xs text-neutral-500 bg-neutral-100 px-2 py-0.5 rounded-full">
+                    <div className="flex items-center gap-2 px-1 mb-1">
+                      <HiOutlineCalendar className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600" />
+                      <h2 className="text-base sm:text-lg font-bold text-neutral-800">{label}</h2>
+                      <span className="text-xs sm:text-sm text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full font-semibold border border-emerald-100">
                         {group.length}
                       </span>
                     </div>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, type ReactNode } from "react";
 
-import { HiOutlineUser, HiOutlineLockClosed, HiOutlineBell, HiOutlineEye, HiOutlineEyeSlash, HiOutlineCheckCircle, HiOutlineExclamationCircle, HiOutlineInformationCircle, HiOutlineShieldCheck, HiOutlineXMark, HiOutlineCamera } from "react-icons/hi2";
+import { HiOutlineUser, HiOutlineLockClosed, HiOutlineEye, HiOutlineEyeSlash, HiOutlineCheckCircle, HiOutlineExclamationCircle, HiOutlineInformationCircle, HiOutlineXMark } from "react-icons/hi2";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -15,16 +15,6 @@ type UserProfile = {
   email: string;
   bio?: string;
   profilePic?: string;
-};
-
-type PrivacySettings = {
-  showProfile: boolean;
-  searchable: boolean;
-};
-
-type NotificationSettings = {
-  emailUpdates: boolean;
-  productNews: boolean;
 };
 
 type NormalizedProfile = {
@@ -74,25 +64,13 @@ export default function SettingsPage() {
   const firstName = session?.user?.name?.split(" ")[0] || "there";
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [privacy, setPrivacy] = useState<PrivacySettings>({ showProfile: true, searchable: true });
-  const [notifications, setNotifications] = useState<NotificationSettings>({ emailUpdates: true, productNews: false });
   const [loading, setLoading] = useState(true);
   const [initialProfile, setInitialProfile] = useState<NormalizedProfile | null>(null);
-  const [initialPrivacy, setInitialPrivacy] = useState<PrivacySettings | null>(null);
-  const [initialNotifications, setInitialNotifications] = useState<NotificationSettings | null>(null);
 
   // Section-specific states
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSuccess, setProfileSuccess] = useState<string | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
-
-  const [privacySaving, setPrivacySaving] = useState(false);
-  const [privacySuccess, setPrivacySuccess] = useState<string | null>(null);
-  const [privacyError, setPrivacyError] = useState<string | null>(null);
-
-  const [notifSaving, setNotifSaving] = useState(false);
-  const [notifSuccess, setNotifSuccess] = useState<string | null>(null);
-  const [notifError, setNotifError] = useState<string | null>(null);
 
   // Password change
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -106,7 +84,7 @@ export default function SettingsPage() {
   const [pwSuccess, setPwSuccess] = useState<string | null>(null);
   const [pwValidationErrors, setPwValidationErrors] = useState<Record<string, string>>({});
 
-  const [activeModal, setActiveModal] = useState<"profile" | "privacy" | "password" | null>(null);
+  const [activeModal, setActiveModal] = useState<"profile" | "password" | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [profileValidationErrors, setProfileValidationErrors] = useState<Record<string, string>>({});
 
@@ -132,21 +110,9 @@ export default function SettingsPage() {
           bio: data.profile?.bio ?? "",
           profilePic: data.profile?.profilePic ?? "",
         };
-        const fetchedPrivacy: PrivacySettings = {
-          showProfile: data.privacy?.showProfile ?? true,
-          searchable: data.privacy?.searchable ?? true,
-        };
-        const fetchedNotifications: NotificationSettings = {
-          emailUpdates: data.notifications?.emailUpdates ?? true,
-          productNews: data.notifications?.productNews ?? false,
-        };
 
         setProfile(fetchedProfile);
-        setPrivacy({ ...fetchedPrivacy });
-        setNotifications({ ...fetchedNotifications });
         setInitialProfile(normalizeProfileValues(fetchedProfile));
-        setInitialPrivacy({ ...fetchedPrivacy });
-        setInitialNotifications({ ...fetchedNotifications });
       } catch {
         setProfileError("Failed to load settings");
         toast.error("Failed to load settings");
@@ -166,26 +132,6 @@ export default function SettingsPage() {
       return () => clearTimeout(t);
     }
   }, [profileSuccess, profileError]);
-
-  useEffect(() => {
-    if (privacySuccess || privacyError) {
-      const t = setTimeout(() => {
-        setPrivacySuccess(null);
-        setPrivacyError(null);
-      }, 3000);
-      return () => clearTimeout(t);
-    }
-  }, [privacySuccess, privacyError]);
-
-  useEffect(() => {
-    if (notifSuccess || notifError) {
-      const t = setTimeout(() => {
-        setNotifSuccess(null);
-        setNotifError(null);
-      }, 3000);
-      return () => clearTimeout(t);
-    }
-  }, [notifSuccess, notifError]);
 
   useEffect(() => {
     if (pwSuccess || pwError) {
@@ -267,60 +213,6 @@ export default function SettingsPage() {
     }
   }
 
-  // Privacy update handler
-  async function handlePrivacyUpdate() {
-    setPrivacySaving(true);
-    setPrivacySuccess(null);
-    setPrivacyError(null);
-    try {
-      const res = await fetch("/api/user/settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ privacy }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err?.error || "Failed to update privacy");
-      }
-      setInitialPrivacy({ ...privacy });
-      setPrivacySuccess("Privacy settings updated!");
-      toast.success("Privacy settings updated!");
-    } catch (err: any) {
-      const message = err?.message || "Could not update privacy settings.";
-      setPrivacyError(message);
-      toast.error(message);
-    } finally {
-      setPrivacySaving(false);
-    }
-  }
-
-  // Notification update handler
-  async function handleNotificationsUpdate() {
-    setNotifSaving(true);
-    setNotifSuccess(null);
-    setNotifError(null);
-    try {
-      const res = await fetch("/api/user/settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ notifications }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err?.error || "Failed to update notifications");
-      }
-      setInitialNotifications({ ...notifications });
-      setNotifSuccess("Notification preferences updated!");
-      toast.success("Notification preferences updated!");
-    } catch (err: any) {
-      const message = err?.message || "Could not update notification preferences.";
-      setNotifError(message);
-      toast.error(message);
-    } finally {
-      setNotifSaving(false);
-    }
-  }
-
   // Password change handler with client-side validation
   async function handlePasswordChange() {
     setPwError(null);
@@ -383,12 +275,6 @@ export default function SettingsPage() {
           return;
         }
         await handleProfileUpdate();
-      } else if (activeModal === "privacy") {
-        if (!privacyDirty) {
-          setActiveModal(null);
-          return;
-        }
-        await handlePrivacyUpdate();
       } else if (activeModal === "password") {
         if (!passwordReady) {
           setActiveModal(null);
@@ -416,15 +302,6 @@ export default function SettingsPage() {
       normalizedProfile.lastName !== initialProfile.lastName ||
       normalizedProfile.bio !== initialProfile.bio
     )
-  );
-  const privacyDirty = !!(
-    initialPrivacy &&
-    (privacy.showProfile !== initialPrivacy.showProfile || privacy.searchable !== initialPrivacy.searchable)
-  );
-  const notificationsDirty = !!(
-    initialNotifications &&
-    (notifications.emailUpdates !== initialNotifications.emailUpdates ||
-      notifications.productNews !== initialNotifications.productNews)
   );
   const passwordReady =
     currentPassword.length > 0 &&
@@ -462,17 +339,17 @@ export default function SettingsPage() {
             if (!profileDirty || !profileValid) return;
             setActiveModal("profile");
           }}
-          className="bg-white/95 backdrop-blur rounded-2xl shadow-md hover:shadow-lg p-6 sm:p-7 space-y-5 border border-neutral-100 transition-shadow duration-200"
+          className="bg-white rounded-xl sm:rounded-2xl shadow-lg border-2 border-neutral-200 hover:shadow-xl p-5 sm:p-6 lg:p-7 space-y-5 transition-all duration-200"
         >
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="text-lg font-bold mb-1 flex items-center gap-2 text-neutral-900">
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-700 shadow-sm">
-                  <HiOutlineUser className="w-5 h-5" />
+              <h2 className="text-base sm:text-lg font-bold mb-1 flex items-center gap-2 sm:gap-3 text-neutral-900">
+                <span className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 text-white shadow-md ring-2 ring-emerald-100">
+                  <HiOutlineUser className="w-5 h-5 sm:w-6 sm:h-6" />
                 </span>
                 Profile Information
               </h2>
-              <p className="text-xs text-neutral-500 mb-2">Update the basic details that help personalize your FoodFindr experience.</p>
+              <p className="text-xs sm:text-sm text-neutral-600 mb-2">Update the basic details that help personalize your FoodFindr experience.</p>
             </div>
             {profileDirty && (
               <button
@@ -578,45 +455,45 @@ export default function SettingsPage() {
             </p>
           </div>
 
-            {/* Bio - Miller's Law (keep it simple, character counter for feedback) */}
-            <div>
-              <label className="block text-sm font-semibold mb-1.5 text-neutral-800">
-                Bio
-                <span className="text-xs font-normal text-neutral-500 ml-2">Optional</span>
-              </label>
-              <textarea
-                className={`w-full border rounded-lg px-3 py-2.5 text-sm text-neutral-900 focus:outline-none focus:ring-2 transition-all resize-none ${
-                  profileValidationErrors.bio
-                    ? "border-rose-300 focus:ring-rose-200 focus:border-rose-400"
-                    : "border-neutral-200 focus:ring-emerald-200 focus:border-emerald-300"
-                }`}
-                value={profile.bio || ""}
-                onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
-                rows={3}
-                maxLength={280}
-                placeholder="Tell us a bit about yourself..."
-              />
-              <div className="flex items-center justify-between mt-1">
-                {profileValidationErrors.bio ? (
-                  <p className="text-xs text-rose-600 flex items-center gap-1">
-                    <HiOutlineExclamationCircle className="w-3.5 h-3.5" />
-                    {profileValidationErrors.bio}
-                  </p>
-                ) : (
-                  <p className="text-xs text-neutral-500">Share your story, interests, or cooking style</p>
-                )}
-                <span className={`text-xs font-medium ${
-                  (profile.bio || "").length > 250 ? "text-amber-600" : "text-neutral-400"
-                }`}>
-                  {(profile.bio || "").length}/280
-                </span>
-              </div>
+          {/* Bio - Miller's Law (keep it simple, character counter for feedback) */}
+          <div>
+            <label className="block text-sm font-semibold mb-1.5 text-neutral-800">
+              Bio
+              <span className="text-xs font-normal text-neutral-500 ml-2">Optional</span>
+            </label>
+            <textarea
+              className={`w-full border rounded-lg px-3 py-2.5 text-sm text-neutral-900 focus:outline-none focus:ring-2 transition-all resize-none ${
+                profileValidationErrors.bio
+                  ? "border-rose-300 focus:ring-rose-200 focus:border-rose-400"
+                  : "border-neutral-200 focus:ring-emerald-200 focus:border-emerald-300"
+              }`}
+              value={profile.bio || ""}
+              onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
+              rows={3}
+              maxLength={280}
+              placeholder="Tell us a bit about yourself..."
+            />
+            <div className="flex items-center justify-between mt-1">
+              {profileValidationErrors.bio ? (
+                <p className="text-xs text-rose-600 flex items-center gap-1">
+                  <HiOutlineExclamationCircle className="w-3.5 h-3.5" />
+                  {profileValidationErrors.bio}
+                </p>
+              ) : (
+                <p className="text-xs text-neutral-500">Share your story, interests, or cooking style</p>
+              )}
+              <span className={`text-xs font-medium ${
+                (profile.bio || "").length > 250 ? "text-amber-600" : "text-neutral-400"
+              }`}>
+                {(profile.bio || "").length}/280
+              </span>
             </div>
+          </div>
 
           <div className="flex items-center gap-3 pt-2">
             <button
               type="submit"
-              className="inline-flex items-center justify-center bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm py-2.5 px-6 rounded-lg shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-emerald-600"
+              className="inline-flex items-center justify-center bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold text-sm py-2.5 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-emerald-600 disabled:hover:to-teal-600 min-h-[44px]"
               disabled={profileSaving || !profileDirty || !profileValid}
             >
               {profileSaving ? (
@@ -647,187 +524,6 @@ export default function SettingsPage() {
           )}
         </form>
 
-        {/* Privacy Section */}
-        <div className="bg-white/95 backdrop-blur rounded-2xl shadow-md hover:shadow-lg p-6 sm:p-7 space-y-5 border border-neutral-100 transition-shadow duration-200">
-          <div className="flex items-start justify-between">
-            <div>
-              <h2 className="text-lg font-bold mb-1 flex items-center gap-2 text-neutral-900">
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 text-blue-700 shadow-sm">
-                  <HiOutlineShieldCheck className="w-5 h-5" />
-                </span>
-                Privacy Settings
-              </h2>
-              <p className="text-xs text-neutral-500 mb-2">Control how your profile appears to others across FoodFindr.</p>
-            </div>
-            {privacyDirty && (
-              <button
-                type="button"
-                onClick={() => {
-                  if (!initialPrivacy) return;
-                  setPrivacy({ ...initialPrivacy });
-                  toast.info("Changes discarded");
-                }}
-                className="flex items-center gap-1 text-xs text-neutral-500 hover:text-rose-600 transition px-2 py-1 rounded hover:bg-rose-50"
-                title="Discard changes"
-              >
-                <HiOutlineXMark className="w-3.5 h-3.5" />
-                Discard
-              </button>
-            )}
-          </div>
-          <div className="flex flex-col gap-3">
-            <label className="flex items-start gap-3 text-sm text-neutral-800">
-              <input
-                type="checkbox"
-                className="mt-1 h-4 w-4 rounded border-neutral-300 text-emerald-600 focus:ring-emerald-200"
-                checked={privacy.showProfile}
-                onChange={(e) => setPrivacy({ ...privacy, showProfile: e.target.checked })}
-              />
-              <span>
-                <span className="font-semibold block">Show my profile to others</span>
-                <span className="text-xs text-neutral-500">Allow other users to see your name when interacting with shared content.</span>
-              </span>
-            </label>
-            <label className="flex items-start gap-3 text-sm text-neutral-800">
-              <input
-                type="checkbox"
-                className="mt-1 h-4 w-4 rounded border-neutral-300 text-emerald-600 focus:ring-emerald-200"
-                checked={privacy.searchable}
-                onChange={(e) => setPrivacy({ ...privacy, searchable: e.target.checked })}
-              />
-              <span>
-                <span className="font-semibold block">Allow my profile to be searchable</span>
-                <span className="text-xs text-neutral-500">Let others find you by name when collaboration features are available.</span>
-              </span>
-            </label>
-          </div>
-          <div className="flex items-center gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() => {
-                if (!privacyDirty) return;
-                setActiveModal("privacy");
-              }}
-              className="inline-flex items-center justify-center bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm py-2.5 px-6 rounded-lg shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-emerald-600"
-              disabled={privacySaving || !privacyDirty}
-            >
-              {privacySaving ? (
-                <>
-                  <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
-                  Saving...
-                </>
-              ) : (
-                "Save Privacy"
-              )}
-            </button>
-            {!privacyDirty && !privacySaving && (
-              <span className="flex items-center gap-1 text-xs text-neutral-400">
-                <HiOutlineInformationCircle className="w-3.5 h-3.5" />
-                No changes to save
-              </span>
-            )}
-          </div>
-          {privacySuccess && (
-            <div className="mt-2 text-emerald-600 flex items-center gap-1 text-sm">
-              <HiOutlineCheckCircle /> {privacySuccess}
-            </div>
-          )}
-          {privacyError && (
-            <div className="mt-2 text-rose-600 flex items-center gap-1 text-sm">
-              <HiOutlineExclamationCircle /> {privacyError}
-            </div>
-          )}
-        </div>
-
-        {/* Notification Section */}
-        <div className="bg-white/95 backdrop-blur rounded-2xl shadow-md hover:shadow-lg p-6 sm:p-7 space-y-5 border border-neutral-100 transition-shadow duration-200">
-          <div className="flex items-start justify-between">
-            <div>
-              <h2 className="text-lg font-bold mb-1 flex items-center gap-2 text-neutral-900">
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-amber-50 to-amber-100 text-amber-700 shadow-sm">
-                  <HiOutlineBell className="w-5 h-5" />
-                </span>
-                Notification Preferences
-              </h2>
-              <p className="text-xs text-neutral-500 mb-2">Choose when FoodFindr should keep you in the loop.</p>
-            </div>
-            {notificationsDirty && (
-              <button
-                type="button"
-                onClick={() => {
-                  if (!initialNotifications) return;
-                  setNotifications({ ...initialNotifications });
-                  toast.info("Changes discarded");
-                }}
-                className="flex items-center gap-1 text-xs text-neutral-500 hover:text-rose-600 transition px-2 py-1 rounded hover:bg-rose-50"
-                title="Discard changes"
-              >
-                <HiOutlineXMark className="w-3.5 h-3.5" />
-                Discard
-              </button>
-            )}
-          </div>
-          <div className="flex flex-col gap-3">
-            <label className="flex items-start gap-3 text-sm text-neutral-800">
-              <input
-                type="checkbox"
-                className="mt-1 h-4 w-4 rounded border-neutral-300 text-emerald-600 focus:ring-emerald-200"
-                checked={notifications.emailUpdates}
-                onChange={(e) => setNotifications({ ...notifications, emailUpdates: e.target.checked })}
-              />
-              <span>
-                <span className="font-semibold block">Email me about important updates</span>
-                <span className="text-xs text-neutral-500">Receive essential account and security-related emails.</span>
-              </span>
-            </label>
-            <label className="flex items-start gap-3 text-sm text-neutral-800">
-              <input
-                type="checkbox"
-                className="mt-1 h-4 w-4 rounded border-neutral-300 text-emerald-600 focus:ring-emerald-200"
-                checked={notifications.productNews}
-                onChange={(e) => setNotifications({ ...notifications, productNews: e.target.checked })}
-              />
-              <span>
-                <span className="font-semibold block">Send me product news and offers</span>
-                <span className="text-xs text-neutral-500">Get tips, inspiration, and FoodFindr news occasionally.</span>
-              </span>
-            </label>
-          </div>
-          <div className="flex items-center gap-3 pt-2">
-            <button
-              type="button"
-              onClick={handleNotificationsUpdate}
-              className="inline-flex items-center justify-center bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm py-2.5 px-6 rounded-lg shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-emerald-600"
-              disabled={notifSaving || !notificationsDirty}
-            >
-              {notifSaving ? (
-                <>
-                  <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
-                  Saving...
-                </>
-              ) : (
-                "Save Notifications"
-              )}
-            </button>
-            {!notificationsDirty && !notifSaving && (
-              <span className="flex items-center gap-1 text-xs text-neutral-400">
-                <HiOutlineInformationCircle className="w-3.5 h-3.5" />
-                No changes to save
-              </span>
-            )}
-          </div>
-          {notifSuccess && (
-            <div className="mt-2 text-emerald-600 flex items-center gap-1 text-sm">
-              <HiOutlineCheckCircle /> {notifSuccess}
-            </div>
-          )}
-          {notifError && (
-            <div className="mt-2 text-rose-600 flex items-center gap-1 text-sm">
-              <HiOutlineExclamationCircle /> {notifError}
-            </div>
-          )}
-        </div>
-
         {/* Password Section */}
         <form
           onSubmit={(e) => {
@@ -835,17 +531,17 @@ export default function SettingsPage() {
             if (!passwordReady) return;
             setActiveModal("password");
           }}
-          className="bg-white/95 backdrop-blur rounded-2xl shadow-md hover:shadow-lg p-6 sm:p-7 space-y-5 border border-neutral-100 transition-shadow duration-200"
+          className="bg-white rounded-xl sm:rounded-2xl shadow-lg border-2 border-neutral-200 hover:shadow-xl p-5 sm:p-6 lg:p-7 space-y-5 transition-all duration-200"
         >
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="text-lg font-bold mb-1 flex items-center gap-2 text-neutral-900">
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-rose-50 to-rose-100 text-rose-700 shadow-sm">
-                  <HiOutlineLockClosed className="w-5 h-5" />
+              <h2 className="text-base sm:text-lg font-bold mb-1 flex items-center gap-2 sm:gap-3 text-neutral-900">
+                <span className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-xl bg-gradient-to-br from-rose-400 to-rose-600 text-white shadow-md ring-2 ring-rose-100">
+                  <HiOutlineLockClosed className="w-5 h-5 sm:w-6 sm:h-6" />
                 </span>
                 Change Password
               </h2>
-              <p className="text-xs text-neutral-500 mb-2">Keep your account secure by using a strong, unique password.</p>
+              <p className="text-xs sm:text-sm text-neutral-600 mb-2">Keep your account secure by using a strong, unique password.</p>
             </div>
             {(currentPassword || newPassword || confirmPassword) && (
               <button
@@ -946,7 +642,7 @@ export default function SettingsPage() {
           <div className="flex items-center gap-3 pt-2">
             <button
               type="submit"
-              className="inline-flex items-center justify-center bg-rose-600 hover:bg-rose-700 text-white font-semibold text-sm py-2.5 px-6 rounded-lg shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-rose-600"
+              className="inline-flex items-center justify-center bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-700 hover:to-rose-800 text-white font-semibold text-sm py-2.5 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-rose-600 disabled:hover:to-rose-700 min-h-[44px]"
               disabled={pwSaving || !passwordReady}
             >
               {pwSaving ? (
@@ -982,16 +678,17 @@ export default function SettingsPage() {
 
   return (
     <div className="flex h-screen overflow-hidden relative bg-white">
-      {/* Background image with subtle overlay (mirrors dashboard) */}
+      {/* Background image with subtle overlay */}
       <div
         className="absolute inset-0 z-0 pointer-events-none"
         aria-hidden="true"
         style={{
           backgroundImage:
-            "url('https://images.unsplash.com/photo-1514996937319-344454492b37?w=1600&q=80&auto=format&fit=crop')",
+            "url('https://images.unsplash.com/photo-1504674900247-344454492b37?w=1600&q=80&auto=format&fit=crop')",
           backgroundSize: "cover",
           backgroundPosition: "center",
           opacity: 0.08,
+          filter: "brightness(1)",
         }}
       />
 
@@ -1000,19 +697,19 @@ export default function SettingsPage() {
 
       {/* Main Content */}
       <main className="flex-1 h-full overflow-y-auto relative z-10">
-        <div className="h-full w-full px-4 sm:px-8 py-8 sm:py-12">
+        <div className="h-full w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10 max-w-7xl mx-auto">
           {/* Header */}
-          <div className="mb-10 sm:mb-12">
-            <div className="flex items-center gap-4 mb-3">
-              <div className="flex items-center justify-center h-12 w-12 sm:h-14 sm:w-14 rounded-3xl bg-gradient-to-br from-emerald-100 to-emerald-200 shadow-lg">
-                <HiOutlineUser className="h-6 w-6 sm:h-7 sm:w-7 text-emerald-700" />
+          <div className="mb-8 sm:mb-10">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-4">
+              <div className="flex items-center justify-center h-14 w-14 sm:h-16 sm:w-16 rounded-2xl bg-gradient-to-br from-emerald-400 via-emerald-500 to-teal-600 shadow-lg ring-2 ring-emerald-100">
+                <HiOutlineUser className="h-7 w-7 sm:h-8 sm:w-8 text-white" />
               </div>
-              <div>
-                <h1 className="text-3xl sm:text-4xl font-extrabold text-neutral-900 tracking-tight mb-1">
+              <div className="flex-1">
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-neutral-900 tracking-tight mb-1">
                   Account Settings
                 </h1>
                 <p className="text-neutral-600 text-sm sm:text-base">
-                  Fine-tune your profile, security, and preferences{session?.user?.name ? `, ${firstName}` : ""}.
+                  Manage your profile and security{session?.user?.name ? `, ${firstName}` : ""}.
                 </p>
               </div>
             </div>
@@ -1022,23 +719,21 @@ export default function SettingsPage() {
         </div>
       </main>
       {activeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-in zoom-in-95 duration-200">
-            <h3 className="text-lg font-bold text-neutral-900 mb-2">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 sm:p-8 animate-in zoom-in-95 duration-200">
+            <h3 className="text-lg sm:text-xl font-bold text-neutral-900 mb-2">
               {activeModal === "profile" && "Update Profile"}
-              {activeModal === "privacy" && "Update Privacy Settings"}
               {activeModal === "password" && "Change Password"}
             </h3>
             <p className="text-sm text-neutral-600 mb-6">
               {activeModal === "profile" && "Are you sure you want to update your public profile details?"}
-              {activeModal === "privacy" && "Are you sure you want to change your visibility settings?"}
               {activeModal === "password" &&
                 "Are you sure you want to change your password? You will need to log in again on other devices."}
             </p>
             <div className="flex justify-end gap-3">
               <button
                 type="button"
-                className="px-4 py-2 rounded-lg border-2 border-neutral-200 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 hover:border-neutral-300 transition-all"
+                className="px-4 py-2.5 rounded-xl border-2 border-neutral-200 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 hover:border-neutral-300 transition-all active:scale-95 min-h-[44px]"
                 onClick={() => setActiveModal(null)}
                 disabled={confirming}
               >
@@ -1046,7 +741,7 @@ export default function SettingsPage() {
               </button>
               <button
                 type="button"
-                className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 shadow-md hover:shadow-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-sm font-semibold shadow-lg hover:shadow-xl transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed min-h-[44px]"
                 onClick={handleConfirm}
                 disabled={confirming}
               >

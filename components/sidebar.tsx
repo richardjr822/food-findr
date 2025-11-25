@@ -33,7 +33,14 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(true);
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    // Initialize from localStorage
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('sidebar_collapsed');
+      return saved === 'true';
+    }
+    return false;
+  });
   const [threads, setThreads] = useState<RecentItem[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [userMenu, setUserMenu] = useState(false);
@@ -46,6 +53,11 @@ export default function Sidebar() {
 
   const { data: session } = useSession();
   const realUser = session?.user;
+
+  // Persist collapsed state to localStorage
+  useEffect(() => {
+    localStorage.setItem('sidebar_collapsed', String(collapsed));
+  }, [collapsed]);
 
   const filteredChats = threads.filter((chat) =>
     chat.title.toLowerCase().includes(search.toLowerCase())
@@ -218,10 +230,10 @@ export default function Sidebar() {
     <>
       {/* Mobile toggle button */}
       <button
-        className="fixed top-4 left-4 z-40 md:hidden bg-white text-neutral-800 p-2 rounded-xl shadow-lg border border-neutral-200 hover:bg-neutral-50 transition"
+        className="fixed top-4 left-4 z-40 md:hidden bg-gradient-to-br from-emerald-600 to-teal-600 text-white p-3 rounded-xl shadow-lg hover:shadow-xl transition-all active:scale-95 min-h-[48px] min-w-[48px]"
         aria-label="Open sidebar"
         onClick={() => setOpen(true)}
-        style={{ display: open ? "none" : "block" }}
+        style={{ display: open ? "none" : "flex", alignItems: "center", justifyContent: "center" }}
       >
         <HiOutlineBars3 className="w-6 h-6" />
       </button>
@@ -230,43 +242,43 @@ export default function Sidebar() {
       <aside
         className={`
           fixed z-40 inset-y-0 left-0 flex flex-col
-          bg-gradient-to-b from-white via-neutral-50/50 to-white text-neutral-900 font-sans
+          bg-white text-neutral-900 font-sans
           transition-all duration-300 ease-in-out
           ${open ? "translate-x-0" : "-translate-x-full"}
           md:static md:translate-x-0
           ${collapsed ? "md:w-20" : "md:w-80"}
           w-80 h-screen max-h-screen
-          border-r border-neutral-200 shadow-xl md:shadow-none
+          border-r-2 border-neutral-200 shadow-2xl md:shadow-lg
         `}
         aria-label="Sidebar"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-5 border-b border-neutral-200 bg-white/80 backdrop-blur-sm">
+        <div className="flex items-center justify-between px-5 py-5 border-b-2 border-neutral-200 bg-gradient-to-r from-emerald-50/30 to-teal-50/30">
           {!collapsed && (
             <Link href="/dashboard" className="flex items-center gap-3 group">
-              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-100 via-emerald-200 to-emerald-100 shadow-md group-hover:shadow-lg transition-all group-hover:scale-105">
-                <HiOutlineSparkles className="w-6 h-6 text-emerald-700" />
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-400 via-emerald-500 to-teal-600 shadow-lg group-hover:shadow-xl transition-all group-hover:scale-110 ring-2 ring-emerald-100">
+                <HiOutlineSparkles className="w-6 h-6 text-white" />
               </span>
               <div>
-                <span className="font-bold text-xl tracking-tight text-neutral-900 bg-gradient-to-r from-emerald-700 to-emerald-600 bg-clip-text text-transparent">
+                <span className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
                   FoodFindr
                 </span>
-                <span className="block text-xs text-neutral-500 font-medium">AI Recipe Generator</span>
+                <span className="block text-xs text-neutral-600 font-semibold">AI Recipe Generator</span>
               </div>
             </Link>
           )}
           
           {collapsed && (
             <Link href="/dashboard" className="flex items-center justify-center mx-auto group">
-              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-100 via-emerald-200 to-emerald-100 shadow-md group-hover:shadow-lg transition-all group-hover:scale-105">
-                <HiOutlineSparkles className="w-6 h-6 text-emerald-700" />
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-400 via-emerald-500 to-teal-600 shadow-lg group-hover:shadow-xl transition-all group-hover:scale-110 ring-2 ring-emerald-100">
+                <HiOutlineSparkles className="w-6 h-6 text-white" />
               </span>
             </Link>
           )}
 
           <div className="flex items-center gap-2">
             <button
-              className="hidden md:block text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 p-2 rounded-lg transition"
+              className="hidden md:flex items-center justify-center text-neutral-500 hover:text-emerald-600 hover:bg-emerald-50 p-2 rounded-lg transition-all active:scale-95 min-h-[40px] min-w-[40px]"
               aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
               onClick={() => setCollapsed(!collapsed)}
             >
@@ -277,7 +289,7 @@ export default function Sidebar() {
               )}
             </button>
             <button
-              className="md:hidden text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 p-2 rounded-lg transition"
+              className="md:hidden flex items-center justify-center text-neutral-500 hover:text-emerald-600 hover:bg-emerald-50 p-2 rounded-lg transition-all active:scale-95 min-h-[40px] min-w-[40px]"
               aria-label="Close sidebar"
               onClick={() => setOpen(false)}
             >
@@ -291,7 +303,7 @@ export default function Sidebar() {
           <a
             href="/generate"
             onClick={handleNewRecipeClick}
-            className={`flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 w-full ${
+            className={`flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:scale-95 w-full min-h-[48px] ${
               collapsed ? "px-3 py-3" : "px-4 py-3.5"
             }`}
             title={collapsed ? "New Recipe" : undefined}
@@ -302,7 +314,7 @@ export default function Sidebar() {
         </div>
 
         {/* Navigation */}
-        <nav className={`px-3 py-3 space-y-1 ${collapsed ? "px-2" : ""}`}>
+        <nav className={`px-3 py-3 space-y-1.5 ${collapsed ? "px-2" : ""}`}>
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
@@ -313,12 +325,12 @@ export default function Sidebar() {
                 title={collapsed ? item.label : undefined}
                 className={`
                   flex items-center gap-3 rounded-xl
-                  transition-all font-semibold text-sm
+                  transition-all font-semibold text-sm min-h-[44px]
                   ${collapsed ? "justify-center px-3 py-3" : "px-4 py-3"}
                   ${
                     isActive
-                      ? "bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-100"
-                      : "text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900"
+                      ? "bg-gradient-to-r from-emerald-50 to-teal-50 text-emerald-700 shadow-md border-2 border-emerald-200"
+                      : "text-neutral-700 hover:bg-neutral-100 hover:text-emerald-600 active:scale-95"
                   }
                 `}
                 aria-current={isActive ? "page" : undefined}
@@ -345,7 +357,7 @@ export default function Sidebar() {
                   placeholder="Search recipes..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full bg-white border border-neutral-200 rounded-xl pl-10 pr-3 py-2.5 text-sm placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-300 transition"
+                  className="w-full bg-neutral-50 border-2 border-neutral-200 rounded-xl pl-10 pr-3 py-2.5 text-sm placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 focus:bg-white transition-all min-h-[44px]"
                 />
               </div>
             </div>
@@ -353,8 +365,8 @@ export default function Sidebar() {
             {/* Recent Activity */}
             <div className="flex-1 overflow-y-auto px-3">
               <div className="flex items-center gap-2 px-3 mb-3">
-                <HiOutlineClock className="w-4 h-4 text-neutral-400" />
-                <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider">
+                <HiOutlineClock className="w-4 h-4 text-emerald-600" />
+                <span className="text-xs font-bold text-neutral-700 uppercase tracking-wider">
                   Recent Activity
                 </span>
               </div>
@@ -372,11 +384,11 @@ export default function Sidebar() {
                       <button
                         className={`
                           w-full flex items-start gap-3 px-3 py-3 rounded-xl
-                          transition-all text-left group
+                          transition-all text-left group active:scale-95
                           ${
                             activeId === t.id
-                              ? "bg-emerald-50 border border-emerald-200 shadow-sm"
-                              : "hover:bg-neutral-100"
+                              ? "bg-gradient-to-r from-emerald-50 to-teal-50 border-2 border-emerald-200 shadow-md"
+                              : "hover:bg-neutral-100 border-2 border-transparent"
                           }
                         `}
                         onClick={() => openThread(t.id)}
@@ -411,18 +423,17 @@ export default function Sidebar() {
                       </button>
                     </li>
                   ))
-                )
-                }
+                )}
               </ul>
             </div>
           </>
         )}
 
         {/* Footer: User section */}
-        <div className="relative px-4 py-4 border-t border-neutral-200 bg-white/90 backdrop-blur-sm">
+        <div className="relative px-4 py-4 border-t-2 border-neutral-200 bg-gradient-to-r from-neutral-50/50 to-white">
           <div ref={userMenuRef}>
             <button
-              className={`w-full flex items-center gap-3 rounded-xl hover:bg-neutral-100 transition-all group ${
+              className={`w-full flex items-center gap-3 rounded-xl hover:bg-emerald-50 transition-all group active:scale-95 min-h-[56px] ${
                 collapsed ? "justify-center px-3 py-3" : "px-3 py-3"
               }`}
               onClick={() => setUserMenu((v) => !v)}
@@ -430,7 +441,7 @@ export default function Sidebar() {
               aria-expanded={userMenu}
               title={collapsed ? displayName || realUser?.name || "User" : undefined}
             >
-              <div className="flex items-center justify-center h-10 w-10 rounded-full flex-shrink-0 shadow-md bg-neutral-200 overflow-hidden">
+              <div className="flex items-center justify-center h-10 w-10 rounded-full flex-shrink-0 shadow-lg bg-gradient-to-br from-emerald-100 to-teal-100 overflow-hidden ring-2 ring-emerald-200">
                 {avatarUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
@@ -460,18 +471,18 @@ export default function Sidebar() {
             </button>
 
             {userMenu && !collapsed && (
-              <div className="absolute left-4 right-4 bottom-20 bg-white border border-neutral-200 rounded-xl shadow-2xl py-2 z-50 animate-fade-in">
-              <Link
+              <div className="absolute left-4 right-4 bottom-20 bg-white border-2 border-neutral-200 rounded-xl shadow-2xl py-2 z-50 animate-in slide-in-from-bottom duration-200">
+                <Link
                   href="/settings"
-                  className="flex items-center gap-3 w-full px-4 py-3 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 transition rounded-lg"
+                  className="flex items-center gap-3 w-full px-4 py-3 text-sm font-semibold text-neutral-700 hover:bg-emerald-50 hover:text-emerald-700 transition-all rounded-lg active:scale-95 min-h-[44px]"
                   onClick={() => setUserMenu(false)}
                 >
                   <HiOutlineCog6Tooth className="w-5 h-5" />
                   Settings
                 </Link>
-                <div className="my-1 border-t border-neutral-100"></div>
+                <div className="my-1 border-t border-neutral-200"></div>
                 <button
-                  className="flex items-center gap-3 w-full px-4 py-3 text-sm font-semibold text-rose-600 hover:bg-rose-50 transition rounded-lg"
+                  className="flex items-center gap-3 w-full px-4 py-3 text-sm font-semibold text-rose-600 hover:bg-rose-50 transition-all rounded-lg active:scale-95 min-h-[44px]"
                   onClick={() => {
                     setUserMenu(false);
                     setShowLogout(true);
@@ -489,7 +500,7 @@ export default function Sidebar() {
       {/* Overlay for mobile */}
       {open && (
         <div
-          className="fixed inset-0 z-30 bg-black/30 backdrop-blur-sm md:hidden"
+          className="fixed inset-0 z-30 bg-black/40 backdrop-blur-sm md:hidden animate-in fade-in duration-200"
           onClick={() => setOpen(false)}
           aria-label="Sidebar overlay"
         />
@@ -497,29 +508,29 @@ export default function Sidebar() {
 
       {/* Logout confirmation modal */}
       {showLogout && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div
             ref={logoutModalRef}
-            className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full mx-4 animate-scale-in"
+            className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 max-w-sm w-full animate-in zoom-in-95 duration-200"
           >
-            <div className="flex items-center justify-center h-16 w-16 rounded-2xl bg-rose-100 mx-auto mb-5">
+            <div className="flex items-center justify-center h-16 w-16 rounded-2xl bg-gradient-to-br from-rose-100 to-rose-200 mx-auto mb-5 shadow-lg">
               <HiOutlineArrowRightOnRectangle className="w-8 h-8 text-rose-600" />
             </div>
-            <h3 className="text-2xl font-bold text-neutral-900 text-center mb-2">
+            <h3 className="text-xl sm:text-2xl font-bold text-neutral-900 text-center mb-2">
               Log out of FoodFindr?
             </h3>
-            <p className="text-neutral-600 text-sm text-center mb-8">
+            <p className="text-neutral-600 text-sm text-center mb-6 sm:mb-8">
               You can always log back in at any time.
             </p>
             <div className="flex gap-3">
               <button
-                className="flex-1 py-3.5 rounded-xl bg-neutral-100 text-neutral-700 font-bold hover:bg-neutral-200 transition"
+                className="flex-1 py-3 sm:py-3.5 rounded-xl bg-neutral-100 text-neutral-700 font-bold hover:bg-neutral-200 transition-all active:scale-95 min-h-[48px]"
                 onClick={() => setShowLogout(false)}
               >
                 Cancel
               </button>
               <button
-                className="flex-1 py-3.5 rounded-xl bg-gradient-to-r from-rose-600 to-rose-700 text-white font-bold hover:from-rose-700 hover:to-rose-800 transition shadow-lg hover:shadow-xl"
+                className="flex-1 py-3 sm:py-3.5 rounded-xl bg-gradient-to-r from-rose-600 to-rose-700 text-white font-bold hover:from-rose-700 hover:to-rose-800 transition-all shadow-lg hover:shadow-xl active:scale-95 min-h-[48px]"
                 onClick={handleLogout}
               >
                 Log out

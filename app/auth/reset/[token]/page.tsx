@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { HiOutlineEye, HiOutlineEyeSlash } from "react-icons/hi2";
 
 export default function ResetPasswordPage() {
   const params = useParams();
@@ -12,6 +13,8 @@ export default function ResetPasswordPage() {
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -117,33 +120,61 @@ export default function ResetPasswordPage() {
               <p className="text-neutral-600 mb-2 text-center">Your new password must be at least 8 characters and include a number or symbol.</p>
               <div>
                 <label htmlFor="password" className="block text-sm font-medium text-neutral-800 mb-1">New password</label>
-                <input
-                  id="password"
-                  type="password"
-                  autoComplete="new-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter new password"
-                  required
-                  className={`w-full rounded-lg border px-4 py-3 text-sm placeholder-neutral-400 focus:outline-none focus:ring-2 transition ${
-                    error ? "border-red-300 focus:ring-red-200" : "border-neutral-300 focus:ring-emerald-200"
-                  }`}
-                />
+                <div className="relative">
+                  <input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="new-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter new password"
+                    required
+                    className={`w-full rounded-lg border px-4 py-3 pr-12 text-sm placeholder-neutral-400 focus:outline-none focus:ring-2 transition ${
+                      error ? "border-red-300 focus:ring-red-200" : "border-neutral-300 focus:ring-emerald-200"
+                    }`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg hover:bg-neutral-100 transition"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? (
+                      <HiOutlineEyeSlash className="h-5 w-5 text-neutral-400" />
+                    ) : (
+                      <HiOutlineEye className="h-5 w-5 text-neutral-400" />
+                    )}
+                  </button>
+                </div>
               </div>
               <div>
                 <label htmlFor="confirm" className="block text-sm font-medium text-neutral-800 mb-1">Confirm password</label>
-                <input
-                  id="confirm"
-                  type="password"
-                  autoComplete="new-password"
-                  value={confirm}
-                  onChange={(e) => setConfirm(e.target.value)}
-                  placeholder="Re-enter new password"
-                  required
-                  className={`w-full rounded-lg border px-4 py-3 text-sm placeholder-neutral-400 focus:outline-none focus:ring-2 transition ${
-                    error ? "border-red-300 focus:ring-red-200" : "border-neutral-300 focus:ring-emerald-200"
-                  }`}
-                />
+                <div className="relative">
+                  <input
+                    id="confirm"
+                    type={showConfirm ? "text" : "password"}
+                    autoComplete="new-password"
+                    value={confirm}
+                    onChange={(e) => setConfirm(e.target.value)}
+                    placeholder="Re-enter new password"
+                    required
+                    className={`w-full rounded-lg border px-4 py-3 pr-12 text-sm placeholder-neutral-400 focus:outline-none focus:ring-2 transition ${
+                      error ? "border-red-300 focus:ring-red-200" : "border-neutral-300 focus:ring-emerald-200"
+                    }`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirm(!showConfirm)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg hover:bg-neutral-100 transition"
+                    aria-label={showConfirm ? "Hide password" : "Show password"}
+                  >
+                    {showConfirm ? (
+                      <HiOutlineEyeSlash className="h-5 w-5 text-neutral-400" />
+                    ) : (
+                      <HiOutlineEye className="h-5 w-5 text-neutral-400" />
+                    )}
+                  </button>
+                </div>
               </div>
               {error && (
                 <p className="text-sm text-red-600" role="alert">{error}</p>

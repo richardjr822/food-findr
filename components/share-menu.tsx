@@ -1,4 +1,4 @@
-"use client";
+  "use client";
 
 import { useEffect, useState } from "react";
 import { HiOutlineClipboard, HiOutlinePaperAirplane, HiOutlineXMark } from "react-icons/hi2";

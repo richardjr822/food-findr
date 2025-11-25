@@ -21,7 +21,6 @@ import {
   HiOutlineSparkles
 } from "react-icons/hi2";
 import Feedback from "@/components/feedback";
-import ShareMenu from "@/components/share-menu";
 
 type SavedRecipe = {
   _id: string;
@@ -63,7 +62,6 @@ export default function SavedRecipesPage() {
   });
   const modalRef = useRef<HTMLDivElement>(null);
   const feedbackRef = useRef<HTMLDivElement>(null);
-  const [showShare, setShowShare] = useState(false);
 
   async function fetchRecipes() {
     try {
@@ -195,20 +193,19 @@ export default function SavedRecipesPage() {
       <Sidebar />
 
       <main className="flex-1 h-full overflow-y-auto relative z-10">
-        <div className="h-full w-full px-3 sm:px-4 lg:px-8 py-3 sm:py-4 lg:py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
           {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="flex items-center justify-center h-9 w-9 sm:h-11 sm:w-11 rounded-xl sm:rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-lg flex-shrink-0">
-                <HiOutlineBookmark className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-5 sm:mb-7">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center h-11 w-11 sm:h-12 sm:w-12 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 shadow-lg flex-shrink-0">
+                <HiOutlineBookmark className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               </div>
               <div className="min-w-0">
-                <h1 className="text-base sm:text-xl lg:text-2xl font-bold text-neutral-900 tracking-tight truncate">
+                <h1 className="text-lg sm:text-2xl lg:text-3xl font-bold text-neutral-900 tracking-tight">
                   Saved Recipes
                 </h1>
-                <p className="text-neutral-600 text-[10px] sm:text-xs">
-                  {filteredAndSortedRecipes.length} {filteredAndSortedRecipes.length === 1 ? "recipe" : "recipes"}
-                  {hasActiveFilters && " (filtered)"}
+                <p className="text-neutral-600 text-xs sm:text-sm">
+                  {recipes.length} {recipes.length === 1 ? 'recipe' : 'recipes'} saved
                 </p>
               </div>
             </div>
@@ -216,83 +213,119 @@ export default function SavedRecipesPage() {
             {/* Filter Toggle Button (Mobile) */}
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className="sm:hidden flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border-2 border-neutral-200 bg-white text-neutral-700 font-semibold text-xs hover:border-emerald-300 transition"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-sm font-semibold transition-all active:scale-95 shadow-sm hover:shadow min-h-[44px]"
             >
-              <HiOutlineFunnel className="h-3.5 w-3.5" />
-              Filters
+              <HiOutlineFunnel className="h-4 w-4" />
+              <span>Filters</span>
+              {showFilters ? <HiChevronUp className="h-4 w-4" /> : <HiChevronDown className="h-4 w-4" />}
             </button>
           </div>
 
-          {/* Search & Filters */}
-          <div className={`mb-4 sm:mb-6 space-y-3 sm:space-y-4 ${showFilters ? 'block' : 'hidden sm:block'}`}>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
-              {/* Search */}
-              <div className="relative lg:col-span-2">
-                <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-neutral-400" />
-                <input
-                  type="text"
-                  placeholder="Search recipes or ingredients..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 sm:pl-10 pr-9 sm:pr-10 py-2 sm:py-2.5 rounded-xl border-2 border-neutral-200 bg-white text-xs sm:text-sm text-neutral-800 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-300 transition"
-                />
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg hover:bg-neutral-100 transition"
+          {/* Search & Filters - Collapsible */}
+          {showFilters && (
+            <div className="mb-6 bg-white rounded-xl sm:rounded-2xl border-2 border-neutral-200 p-4 sm:p-5 shadow-lg animate-in slide-in-from-top duration-200 space-y-4">
+              <div>
+                <label className="flex items-center gap-2 text-sm font-bold text-neutral-900 mb-2">
+                  <HiOutlineMagnifyingGlass className="h-4 w-4 text-amber-600" />
+                  Search
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search by title or ingredient..."
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    className="w-full px-4 py-3 text-sm sm:text-base border-2 border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-all min-h-[48px] bg-neutral-50 focus:bg-white"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg hover:bg-neutral-200 transition"
+                      aria-label="Clear search"
+                    >
+                      <HiOutlineXMark className="h-4 w-4 text-neutral-500" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-bold text-neutral-900 mb-2">
+                    <HiOutlineClock className="h-4 w-4 text-amber-600" />
+                    Sort By
+                  </label>
+                  <select
+                    value={sortBy}
+                    onChange={e => setSortBy(e.target.value as SortOption)}
+                    className="w-full px-4 py-3 text-sm sm:text-base border-2 border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-all bg-neutral-50 focus:bg-white min-h-[48px]"
                   >
-                    <HiOutlineXMark className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-neutral-400" />
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
+                    <option value="title">A-Z (Title)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-bold text-neutral-900 mb-2">
+                    <HiOutlineChartBar className="h-4 w-4 text-amber-600" />
+                    Calories
+                  </label>
+                  <select
+                    value={calorieFilter}
+                    onChange={e => setCalorieFilter(e.target.value as CalorieFilter)}
+                    className="w-full px-4 py-3 text-sm sm:text-base border-2 border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-all bg-neutral-50 focus:bg-white min-h-[48px]"
+                  >
+                    <option value="all">All Calories</option>
+                    <option value="low">Low (&lt;400 cal)</option>
+                    <option value="medium">Medium (400-700)</option>
+                    <option value="high">High (700+ cal)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Clear Filters Button */}
+              {hasActiveFilters && (
+                <div className="flex justify-end pt-2">
+                  <button
+                    onClick={() => {
+                      setSearchQuery('');
+                      setSortBy('newest');
+                      setCalorieFilter('all');
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-amber-700 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 rounded-lg transition-all active:scale-95"
+                  >
+                    <HiOutlineXMark className="h-4 w-4" />
+                    Clear All Filters
                   </button>
-                )}
-              </div>
+                </div>
+              )}
+            </div>
+          )}
 
-              {/* Sort By */}
-              <div>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as SortOption)}
-                  className="w-full px-3 py-2 sm:py-2.5 rounded-xl border-2 border-neutral-200 bg-white text-xs sm:text-sm text-neutral-800 focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-300 transition"
-                >
-                  <option value="newest">Newest First</option>
-                  <option value="oldest">Oldest First</option>
-                  <option value="title">A-Z (Title)</option>
-                </select>
-              </div>
+          {/* Active Filters Indicator */}
+          {!showFilters && hasActiveFilters && (
+            <div className="mb-4 flex items-center gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+              <HiOutlineFunnel className="h-4 w-4" />
+              <span className="font-semibold">Filters active</span>
+              <button
+                onClick={() => setShowFilters(true)}
+                className="ml-auto text-amber-600 hover:text-amber-800 underline font-medium"
+              >
+                View
+              </button>
+            </div>
+          )}
 
-              {/* Calorie Filter */}
-              <div>
-                <select
-                  value={calorieFilter}
-                  onChange={(e) => setCalorieFilter(e.target.value as CalorieFilter)}
-                  className="w-full px-3 py-2 sm:py-2.5 rounded-xl border-2 border-neutral-200 bg-white text-xs sm:text-sm text-neutral-800 focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-300 transition"
-                >
-                  <option value="all">All Calories</option>
-                  <option value="low">Low (&lt;400 cal)</option>
-                  <option value="medium">Medium (400-700)</option>
-                  <option value="high">High (700+ cal)</option>
-                </select>
+          {/* Error State */}
+          {error && (
+            <div className="bg-rose-50 rounded-xl border-2 border-rose-200 p-4 mb-6 animate-in slide-in-from-top duration-200">
+              <div className="flex items-center gap-2 text-rose-700">
+                <HiOutlineExclamationTriangle className="h-5 w-5 flex-shrink-0" />
+                <span className="text-sm font-semibold">{error}</span>
               </div>
             </div>
-
-            {/* Clear Filters */}
-            {hasActiveFilters && (
-              <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl px-3 sm:px-4 py-2">
-                <span className="text-xs sm:text-sm text-emerald-700 font-medium">
-                  Filters active
-                </span>
-                <button
-                  onClick={() => {
-                    setSearchQuery("");
-                    setSortBy("newest");
-                    setCalorieFilter("all");
-                  }}
-                  className="text-xs sm:text-sm text-emerald-700 font-semibold hover:text-emerald-800 underline transition"
-                >
-                  Clear All
-                </button>
-              </div>
-            )}
-          </div>
+          )}
 
           {/* Loading State */}
           {loading && (
@@ -300,16 +333,6 @@ export default function SavedRecipesPage() {
               <div className="flex flex-col items-center gap-3">
                 <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full border-4 border-emerald-200 border-t-emerald-600 animate-spin" />
                 <span className="text-xs sm:text-sm text-neutral-500 font-medium">Loading recipes...</span>
-              </div>
-            </div>
-          )}
-
-          {/* Error State */}
-          {error && !loading && (
-            <div className="bg-rose-50 border-2 border-rose-200 rounded-xl sm:rounded-2xl p-4 sm:p-6 text-rose-700 text-center font-semibold shadow-lg animate-in slide-in-from-top">
-              <div className="flex items-center justify-center gap-2">
-                <HiOutlineExclamationTriangle className="h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0" />
-                <span className="text-sm sm:text-base">{error}</span>
               </div>
             </div>
           )}
@@ -514,12 +537,6 @@ export default function SavedRecipesPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => setShowShare(v => !v)}
-                    className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20"
-                  >
-                    Share
-                  </button>
-                  <button
                     onClick={closeModal}
                     className="flex-shrink-0 p-2 rounded-lg hover:bg-white/20 transition"
                     aria-label="Close"
@@ -532,12 +549,6 @@ export default function SavedRecipesPage() {
 
             {/* Modal Body (scrollable) */}
             <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-5">
-              {showShare && (
-                <div>
-                  <ShareMenu recipeId={selectedRecipe._id} onClose={() => setShowShare(false)} />
-                </div>
-              )}
-
               {/* Nutrition Overview */}
               {selectedRecipe.nutrition && (
                 <div>
@@ -614,7 +625,7 @@ export default function SavedRecipesPage() {
                   )}
                 </button>
                 {expandedSections.ingredients && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 animate-in slide-in-from-top duration-300">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-in slide-in-from-top duration-300">
                     {selectedRecipe.ingredients.map((item, idx) => (
                       <div
                         key={idx}

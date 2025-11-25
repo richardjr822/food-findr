@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { HiOutlineEye, HiOutlineEyeSlash } from "react-icons/hi2";
 
 import { signIn, useSession } from "next-auth/react";
 
@@ -15,6 +16,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [formError, setFormError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -172,19 +174,33 @@ export default function LoginPage() {
               <label htmlFor="password" className="block text-sm font-medium text-neutral-800 mb-1">
                 Password
               </label>
-              <input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
-                required
-                aria-describedby={passwordError ? "password-error" : undefined}
-                className={`w-full rounded-lg border px-4 py-3 text-sm placeholder-neutral-400 focus:outline-none focus:ring-2 transition ${
-                  passwordError ? "border-red-300 focus:ring-red-200" : "border-neutral-300 focus:ring-emerald-200"
-                }`}
-              />
+              <div className="relative">
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  required
+                  aria-describedby={passwordError ? "password-error" : undefined}
+                  className={`w-full rounded-lg border px-4 py-3 pr-12 text-sm placeholder-neutral-400 focus:outline-none focus:ring-2 transition ${
+                    passwordError ? "border-red-300 focus:ring-red-200" : "border-neutral-300 focus:ring-emerald-200"
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg hover:bg-neutral-100 transition"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? (
+                    <HiOutlineEyeSlash className="h-5 w-5 text-neutral-400" />
+                  ) : (
+                    <HiOutlineEye className="h-5 w-5 text-neutral-400" />
+                  )}
+                </button>
+              </div>
               {passwordError && (
                 <p id="password-error" className="mt-1 text-sm text-red-600" role="alert">
                   {passwordError}
