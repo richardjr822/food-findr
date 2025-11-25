@@ -13,13 +13,12 @@ const PUBLIC_PATHS = new Set<string>([
   "/auth/forgot",
   "/forgot",
   "/auth/reset",
-  "/try",
 ]);
 
 function isPublicPath(pathname: string): boolean {
   if (PUBLIC_PATHS.has(pathname)) return true;
   if (pathname.startsWith("/api/auth")) return true;
-  if (pathname.startsWith("/api/public")) return true;
+  // No public APIs except NextAuth
   if (pathname.startsWith("/auth/reset")) return true;
   if (pathname.startsWith("/auth/forgot")) return true;
   if (pathname.startsWith("/share/")) return true;
@@ -42,10 +41,7 @@ function isAuthPage(pathname: string): boolean {
 export async function middleware(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
 
-  // Always allow public API routes
-  if (pathname.startsWith("/api/public")) {
-    return NextResponse.next();
-  }
+  // No special-casing for public APIs
 
   const isAuthApi = pathname.startsWith("/api/auth");
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });

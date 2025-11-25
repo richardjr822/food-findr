@@ -186,7 +186,7 @@ export default function Home() {
           <nav className="flex items-center gap-3" role="navigation" aria-label="Main navigation">
             <Link
               href="/auth/login"
-              className="hidden sm:inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100 focus:outline-none focus:ring-2 focus:ring-emerald-100 transition-all duration-200 hover:-translate-y-0.5"
+              className="inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100 focus:outline-none focus:ring-2 focus:ring-emerald-100 transition-all duration-200 hover:-translate-y-0.5"
             >
               Log in
             </Link>
@@ -221,7 +221,7 @@ export default function Home() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 pt-2">
               <Link
-                href="/try"
+                href="/auth/login"
                 className="group inline-flex items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 px-8 py-4 text-white font-bold shadow-lg hover:shadow-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-200 hover:-translate-y-1"
                 aria-label="Generate a recipe"
               >
@@ -326,10 +326,10 @@ export default function Home() {
                 Start for free
               </Link>
               <Link
-                href="/try"
+                href="/auth/login"
                 className="rounded-xl border-2 border-neutral-200 px-10 py-5 text-neutral-800 bg-white text-lg font-semibold hover:bg-neutral-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-neutral-200 hover:-translate-y-1 hover:border-neutral-300"
               >
-                Try generator
+                Log in to generate
               </Link>
             </div>
           </div>
