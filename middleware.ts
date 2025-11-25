@@ -13,6 +13,7 @@ const PUBLIC_PATHS = new Set<string>([
   "/auth/forgot",
   "/forgot",
   "/auth/reset",
+  "/try",
 ]);
 
 function isPublicPath(pathname: string): boolean {
@@ -20,6 +21,8 @@ function isPublicPath(pathname: string): boolean {
   if (pathname.startsWith("/api/auth")) return true;
   if (pathname.startsWith("/auth/reset")) return true;
   if (pathname.startsWith("/auth/forgot")) return true;
+  if (pathname.startsWith("/share/")) return true;
+  if (pathname === "/share") return true;
   return false;
 }
 
@@ -43,8 +46,9 @@ export async function middleware(req: NextRequest) {
 
   // Unauthenticated flow
   if (!token) {
-    // API protection (except auth endpoints)
-    if (pathname.startsWith("/api") && !isAuthApi) {
+    // API protection (except auth endpoints and explicitly public API)
+    const isPublicApi = pathname.startsWith("/api/public");
+    if (pathname.startsWith("/api") && !isAuthApi && !isPublicApi) {
       return new NextResponse(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { "Content-Type": "application/json" },
