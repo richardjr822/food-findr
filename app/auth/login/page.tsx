@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+
 import { signIn, useSession } from "next-auth/react";
 
 export default function LoginPage() {
@@ -13,9 +14,25 @@ export default function LoginPage() {
   const [emailError, setEmailError] = useState("");
   const [password, setPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
+  const [formError, setFormError] = useState("");
+
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = (searchParams?.get("callbackUrl") as string) || "/dashboard";
+  const showResetSuccess = searchParams?.get("reset") === "success";
+  const errorParam = searchParams?.get("error");
+
+  function mapErrorParam(err?: string | null): string {
+    if (!err) return "";
+    switch (err) {
+      case "CredentialsSignin":
+      case "AccessDenied":
+        return "Invalid email or password.";
+      default:
+        return "Unable to sign in. Please try again.";
+    }
+  }
+
   const { status } = useSession();
 
   useEffect(() => {
@@ -28,6 +45,7 @@ export default function LoginPage() {
     e.preventDefault();
     setEmailError("");
     setPasswordError("");
+    setFormError("");
     let valid = true;
     if (!email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) === false) {
       setEmailError("Please enter a valid email address.");
@@ -40,19 +58,26 @@ export default function LoginPage() {
     if (!valid) return;
     setLoading(true);
     try {
-      await signIn("credentials", {
+      const res = await signIn("credentials", {
         email,
         password,
         callbackUrl,
-        redirect: true,
+        redirect: false,
       });
-      // If redirect does not occur (edge cases), stop loading
-      setLoading(false);
-      return;
+      if (res?.error) {
+        setFormError(mapErrorParam(res.error));
+        setLoading(false);
+        return;
+      }
+      if (res?.ok && res.url) {
+        router.replace(res.url);
+        return;
+      }
+      setFormError("Unable to sign in. Please try again.");
     } catch {
-      setEmailError("Something went wrong. Please try again.");
-      setLoading(false);
+      setFormError("Unable to sign in. Please try again.");
     }
+    setLoading(false);
   }
 
   function handleGoogleLogin() {
@@ -103,6 +128,22 @@ export default function LoginPage() {
         <div className="w-full rounded-3xl bg-white/90 backdrop-blur-md p-10 shadow-[0_8px_24px_0_rgba(0,0,0,0.04)] border border-neutral-100">
           <h1 className="text-3xl font-bold mb-2 text-neutral-900 text-center">Log in to FoodFindr</h1>
           <p className="text-neutral-600 mb-6 text-center">Welcome back! Sign in to your account.</p>
+          {showResetSuccess && (
+            <div className="mb-4 inline-flex items-center gap-2 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800 border border-emerald-100" role="status" aria-live="polite">
+              <svg className="w-4 h-4 text-emerald-700" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M5 12.5l4 4L19 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              Password reset successful. Please sign in.
+            </div>
+          )}
+          {!!(formError || mapErrorParam(errorParam)) && (
+            <div className="mb-4 inline-flex items-center gap-2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 border border-red-100" role="alert">
+              <svg className="w-4 h-4 text-red-600" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M12 9v4m0 4h.01M10.29 3.86l-7.53 13A2 2 0 004.47 20h15.06a2 2 0 001.71-3.14l-7.53-13a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              {formError || mapErrorParam(errorParam)}
+            </div>
+          )}
           <form className="grid gap-4" onSubmit={handleSubmit} aria-label="Login form" noValidate>
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-neutral-800 mb-1">
@@ -151,7 +192,7 @@ export default function LoginPage() {
               )}
             </div>
             <div className="flex items-center justify-between">
-              <Link href="/forgot" className="text-sm text-emerald-700 hover:underline">
+              <Link href="/auth/forgot" className="text-sm text-emerald-700 hover:underline">
                 Forgot password?
               </Link>
             </div>

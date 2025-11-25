@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { appendMessage } from "@/lib/models/thread";
-import { requireUser } from "@/lib/session";
-import { logRecipeActivity } from "@/lib/activity";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,8 +25,6 @@ type Msg = { role: "user" | "model"; content: string };
 function isClearlyOutOfScope(text: string) {
   const s = (text || "").toLowerCase();
   if (!s.trim()) return true;
-
-  // Obvious non-food domains
   const blocked = [
     "build a website","code","program","programming","javascript","typescript","python","java","c++","c#","react","next.js","node",
     "deploy","vercel","docker","kubernetes","terminal","bash","powershell","github","git","sql","database",
@@ -42,8 +37,6 @@ function isClearlyOutOfScope(text: string) {
     "medicine","diagnose","medical advice","legal","lawyer","tax advice"
   ];
   if (blocked.some(k => s.includes(k))) return true;
-
-  // Positive food signals
   const foodHints = [
     "recipe","ingredients","cook","cooking","bake","baking","grill","fry","saute","sauté","meal","dish","serve",
     "nutrition","calories","protein","carbs","fat","diet","cuisine","marinate","simmer","boil","roast","season",
@@ -53,38 +46,17 @@ function isClearlyOutOfScope(text: string) {
   return !hasFoodSignal;
 }
 
-function buildPrompt({
-  userText,
-  mealType,
-  diet,
-}: {
-  userText: string;
-  mealType?: string;
-  diet?: string[];
-}) {
+function buildPrompt({ userText, mealType, diet }: { userText: string; mealType?: string; diet?: string[]; }) {
   const meal = mealType ? `Meal type: ${mealType}.` : "Meal type: any.";
-
-  const dietary =
-    diet && diet.length
-      ? `Dietary restrictions: ${diet.join(", ")}.`
-      : "No strict dietary restrictions.";
-
-  // Default cuisine rule (Filipino by default, but user overrides)
-  const cuisineRule =
-    `Cuisine handling: If the user specifies a cuisine, strictly follow it. ` +
-    `If no cuisine is specified, prefer Filipino or Filipino‑inspired. Do not force Filipino when another cuisine is requested.`;
-
-  // Scope guard: food-only and structured failure mode
-  const scopeGuard =
-    `Scope: Only handle topics related to food, cooking, recipes, or nutrition. ` +
-    `If the user request is outside this scope, respond with strict JSON: {"error":"OUT_OF_SCOPE","reason":string} and nothing else.`;
-
+  const dietary = diet && diet.length ? `Dietary restrictions: ${diet.join(", ")}.` : "No strict dietary restrictions.";
+  const cuisineRule = `Cuisine handling: If the user specifies a cuisine, strictly follow it. If no cuisine is specified, prefer Filipino or Filipino‑inspired.`;
+  const scopeGuard = `Scope: Only handle topics related to food, cooking, recipes, or nutrition. If the user request is outside this scope, respond with strict JSON: {"error":"OUT_OF_SCOPE","reason":string}.`;
   return `
 You are a culinary and nutrition assistant. Create ONE complete recipe using the user's free-form prompt.
 
 ${scopeGuard}
 ${cuisineRule}
-Respect dietary restrictions strictly. Prefer pantry staples (oil, salt, pepper, common spices). Avoid uncommon items.
+Respect dietary restrictions strictly. Prefer pantry staples.
 
 Respond ONLY with strict JSON. No markdown, no commentary.
 
@@ -109,14 +81,6 @@ User inputs:
 Free-form prompt: ${userText}
 ${meal}
 ${dietary}
-
-Constraints:
-- Stay within food/cooking/recipe/nutrition scope only.
-- Use user's inputs primarily; add only minimal staples if needed.
-- Ensure the recipe fits the dietary rules.
-- Estimate nutrition per serving.
-- Keep measurements consistent (metric or US, not mixed).
-- Title should be catchy but specific.
 `;
 }
 
@@ -124,11 +88,9 @@ function safeParseJson(text: string) {
   let m = text.match(/```json\s*([\s\S]*?)```/i);
   if (!m) m = text.match(/```\s*([\s\S]*?)```/);
   const candidate = (m ? m[1] : text).trim();
-
   const start = candidate.indexOf("{");
   const end = candidate.lastIndexOf("}");
   const core = start !== -1 && end !== -1 ? candidate.slice(start, end + 1) : candidate;
-
   return JSON.parse(core);
 }
 
@@ -142,8 +104,7 @@ function extractNumber(raw: any): number | undefined {
 }
 
 function coerceRecipe(obj: any): RecipeResponse {
-  const fallback =
-    "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1200&auto=format&fit=crop&q=60";
+  const fallback = "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1200&auto=format&fit=crop&q=60";
   return {
     title: String(obj?.title ?? "AI-Generated Recipe"),
     image: String(obj?.image || fallback),
@@ -161,56 +122,18 @@ function coerceRecipe(obj: any): RecipeResponse {
   };
 }
 
-async function callAI(_: any) {
-  return {
-    title: "Sample Generated Recipe",
-    ingredients: ["Ingredient A", "Ingredient B"],
-    instructions: ["Step 1", "Step 2"],
-    nutrition: { calories: 420, protein: 25, carbs: 50, fat: 15 },
-  };
-}
-
 export async function POST(req: NextRequest) {
   const send = (data: any, status = 200) =>
-    NextResponse.json(data, {
-      status,
-      headers: { "Cache-Control": "no-store" },
-    });
+    NextResponse.json(data, { status, headers: { "Cache-Control": "no-store" } });
 
   try {
-    const auth = await requireUser();
-    if (auth instanceof NextResponse) return auth; // 401
-    const userId = auth.email;
-
     const body = await req.json();
-    const { threadId } = body;
-
     const userMsg: string = String(body?.userMsg ?? "").trim();
-    const ingredientsFallback: string = String(body?.ingredients ?? "").trim();
     const mealType = body?.mealType ? String(body.mealType) : "";
-    const diet = Array.isArray(body?.diet) ? body.diet.map(String) : [];
-    const history: Msg[] = Array.isArray(body?.history)
-      ? body.history
-          .map((m: any): Msg => ({
-            role: m?.role === "model" ? "model" : "user",
-            content: String(m?.content ?? "").slice(0, 4000),
-          }))
-          .filter((m: Msg) => m.content)
-          .slice(-12)
-      : [];
+    const diet: string[] = Array.isArray(body?.diet) ? body.diet.map(String) : [];
 
-    const userText = userMsg || ingredientsFallback;
-
-    // Food-only pre-check (fast heuristic)
+    const userText = userMsg;
     if (isClearlyOutOfScope(userText)) {
-      // Optionally record the user message only (no model reply)
-      const userMessageId = `m_${Date.now()}_u`;
-      await appendMessage(userId, threadId, {
-        id: userMessageId,
-        role: "user",
-        content: userText || "(empty)",
-        createdAt: new Date(),
-      });
       return send({ error: "Request is outside recipe scope." }, 422);
     }
 
@@ -221,16 +144,8 @@ export async function POST(req: NextRequest) {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: modelId });
 
-    // Convert prior turns to Gemini chat history
-    const chat = model.startChat({
-      history: history.map((m) => ({
-        role: m.role,
-        parts: [{ text: m.content }],
-      })),
-    });
-
     const userPrompt = buildPrompt({ userText, mealType, diet });
-    const result = await chat.sendMessage(userPrompt);
+    const result = await model.generateContent(userPrompt);
     let text = result.response.text();
 
     let parsed: RecipeResponse | { error?: string; reason?: string };
@@ -238,44 +153,22 @@ export async function POST(req: NextRequest) {
       parsed = coerceRecipe(safeParseJson(text));
     } catch {
       const strict = userPrompt + "\nReturn STRICT JSON only (no code fences or prose).";
-      const retry = await chat.sendMessage(strict);
+      const retry = await model.generateContent(strict);
       text = retry.response.text();
       parsed = safeParseJson(text);
-      // If still not recipe-shaped, coerce if possible
-      if (!(parsed as any)?.error) {
-        parsed = coerceRecipe(parsed);
-      }
+      if (!(parsed as any)?.error) parsed = coerceRecipe(parsed);
     }
 
-    // Handle explicit OUT_OF_SCOPE from the model
     if ((parsed as any)?.error === "OUT_OF_SCOPE") {
       const reason = (parsed as any)?.reason || "Outside recipe scope.";
-      const userMessageId = `m_${Date.now()}_u`;
-      await appendMessage(userId, threadId, {
-        id: userMessageId,
-        role: "user",
-        content: userText || "(empty)",
-        createdAt: new Date(),
-      });
       return send({ error: "Request is outside recipe scope.", reason }, 422);
     }
 
     const recipe = parsed as RecipeResponse;
-
     if (!recipe.title || !recipe.ingredients?.length || !recipe.instructions?.length) {
       return send({ error: "Model returned incomplete data. Please try again." }, 502);
     }
 
-    // Append user message
-    const userMessageId = `m_${Date.now()}_u`;
-    await appendMessage(userId, threadId, {
-      id: userMessageId,
-      role: "user",
-      content: userText || "(empty)",
-      createdAt: new Date(),
-    });
-
-    // Normalize nutrition to numbers where possible
     const nutritionNumbers = {
       calories: extractNumber(recipe.nutrition?.calories) ?? 0,
       protein: extractNumber(recipe.nutrition?.protein) ?? 0,
@@ -283,35 +176,7 @@ export async function POST(req: NextRequest) {
       fat: extractNumber(recipe.nutrition?.fat) ?? 0,
     };
 
-    // Append model message ONCE (remove duplicate append)
-    const modelMessageId = `m_${Date.now()}_m`;
-    await appendMessage(userId, threadId, {
-      id: modelMessageId,
-      role: "model",
-      content: recipe.title,
-      createdAt: new Date(),
-      saved: false,
-      recipeSnapshot: {
-        title: recipe.title,
-        ingredients: recipe.ingredients,
-        instructions: recipe.instructions,
-        nutrition: nutritionNumbers,
-      },
-    });
-
-    // Log activity (30-day TTL)
-    try {
-      await logRecipeActivity(auth.userId, {
-        type: "generated_recipe",
-        title: recipe.title,
-        threadId,
-        metadata: { nutrition: nutritionNumbers },
-      });
-    } catch {}
-
-    // Return normalized payload
     return send({
-      messageId: modelMessageId,
       title: recipe.title,
       image: recipe.image,
       time: recipe.time,
@@ -323,7 +188,7 @@ export async function POST(req: NextRequest) {
     }, 200);
   } catch (err: any) {
     const detail = process.env.NODE_ENV !== "production" ? String(err?.message || err) : undefined;
-    console.error("Gemini generate error:", err);
+    console.error("Public generate error:", err);
     return NextResponse.json({ error: "Failed to generate recipe.", detail }, { status: 500 });
   }
 }

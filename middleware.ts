@@ -10,11 +10,16 @@ const PUBLIC_PATHS = new Set<string>([
   "/auth/login",
   "/auth/signin",
   "/auth/signup",
+  "/auth/forgot",
+  "/forgot",
+  "/auth/reset",
 ]);
 
 function isPublicPath(pathname: string): boolean {
   if (PUBLIC_PATHS.has(pathname)) return true;
   if (pathname.startsWith("/api/auth")) return true;
+  if (pathname.startsWith("/auth/reset")) return true;
+  if (pathname.startsWith("/auth/forgot")) return true;
   return false;
 }
 
@@ -23,6 +28,8 @@ function isAuthPage(pathname: string): boolean {
     pathname === "/auth/login" ||
     pathname === "/auth/signin" ||
     pathname === "/auth/signup" ||
+    pathname === "/auth/forgot" ||
+    pathname.startsWith("/auth/reset") ||
     pathname === "/login" ||
     pathname === "/register"
   );

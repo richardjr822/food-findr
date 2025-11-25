@@ -18,6 +18,8 @@ import {
   HiChevronUp
 } from "react-icons/hi2";
 import Sidebar from "@/components/sidebar";
+import ShareMenu from "@/components/share-menu";
+import Feedback from "@/components/feedback";
 
 const MEAL_TYPES = [
   { label: "Breakfast", value: "breakfast", icon: "🌅" },
@@ -90,6 +92,7 @@ function GenerateRecipeContent() {
   const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(true);
   const [expandedRecipes, setExpandedRecipes] = useState<Set<string>>(new Set());
+  const [sharingFor, setSharingFor] = useState<string | null>(null);
 
   const searchParams = useSearchParams();
   const loadSeq = useRef(0);
@@ -348,7 +351,7 @@ function GenerateRecipeContent() {
         });
         setMessages(prev => prev.map(m => (m.id === messageId ? { ...m, saved: false, recipeId: null } : m)));
       } else {
-        await fetch("/api/recipes/save", {
+        const res = await fetch("/api/recipes/save", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -360,7 +363,9 @@ function GenerateRecipeContent() {
             nutrition: msg.recipe.nutrition,
           }),
         });
-        setMessages(prev => prev.map(m => (m.id === messageId ? { ...m, saved: true } : m)));
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || "Failed to save");
+        setMessages(prev => prev.map(m => (m.id === messageId ? { ...m, saved: true, recipeId: data.id } : m)));
       }
     } catch {
       // ignore UI error for now
@@ -380,13 +385,18 @@ function GenerateRecipeContent() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden relative bg-gradient-to-br from-emerald-50/30 via-white to-teal-50/20">
+    <div className="flex h-screen overflow-hidden relative bg-white">
       {/* Background Pattern */}
       <div
         className="absolute inset-0 z-0 pointer-events-none"
         aria-hidden="true"
         style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2310b981' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+          backgroundImage:
+            "url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1600&q=80&auto=format&fit=crop')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          opacity: 0.08,
+          filter: "brightness(1)",
         }}
       />
       
@@ -401,7 +411,7 @@ function GenerateRecipeContent() {
                 <HiOutlineSparkles className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
               </div>
               <div className="min-w-0">
-                <h1 className="text-base sm:text-xl lg:text-2xl font-bold text-neutral-900 tracking-tight truncate">
+                <h1 className="text-base sm:text-xl lg:text-2xl font-bold text-neutral-900 tracking-tight">
                   AI Recipe Generator
                 </h1>
                 <p className="text-neutral-600 text-[10px] sm:text-xs hidden sm:block">
@@ -653,23 +663,34 @@ function GenerateRecipeContent() {
                               </p>
                             )}
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => toggleSave(m.id)}
-                            aria-pressed={!!m.saved}
-                            className={`inline-flex items-center gap-1 sm:gap-1.5 rounded-lg border-2 px-2 sm:px-2.5 py-1.5 text-[10px] sm:text-xs font-bold transition-all flex-shrink-0 ${
-                              m.saved
-                                ? "border-emerald-600 bg-emerald-600 text-white shadow-md scale-105"
-                                : "border-emerald-600 text-emerald-700 hover:bg-emerald-50"
-                            }`}
-                          >
-                            {m.saved ? (
-                              <HiBookmark className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                            ) : (
-                              <HiOutlineBookmark className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => toggleSave(m.id)}
+                              aria-pressed={!!m.saved}
+                              className={`inline-flex items-center gap-1 sm:gap-1.5 rounded-lg border-2 px-2 sm:px-2.5 py-1.5 text-[10px] sm:text-xs font-bold transition-all flex-shrink-0 ${
+                                m.saved
+                                  ? "border-emerald-600 bg-emerald-600 text-white shadow-md scale-105"
+                                  : "border-emerald-600 text-emerald-700 hover:bg-emerald-50"
+                              }`}
+                            >
+                              {m.saved ? (
+                                <HiBookmark className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                              ) : (
+                                <HiOutlineBookmark className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                              )}
+                              <span className="hidden sm:inline">{m.saved ? "Saved" : "Save"}</span>
+                            </button>
+                            {m.saved && m.recipeId && (
+                              <button
+                                type="button"
+                                onClick={() => setSharingFor(sharingFor === m.id ? null : m.id)}
+                                className="inline-flex items-center gap-1.5 rounded-lg border-2 border-neutral-200 px-2.5 py-1.5 text-[10px] sm:text-xs font-bold text-neutral-700 hover:border-emerald-300 hover:bg-emerald-50"
+                              >
+                                Share
+                              </button>
                             )}
-                            <span className="hidden sm:inline">{m.saved ? "Saved" : "Save"}</span>
-                          </button>
+                          </div>
                         </div>
 
                         {m.recipe && Array.isArray(m.recipe.ingredients) ? (
@@ -788,6 +809,11 @@ function GenerateRecipeContent() {
                         ) : (
                           <div className="text-xs sm:text-sm text-neutral-500 text-center py-6 sm:py-8">
                             Recipe details unavailable – generate a new one.
+                          </div>
+                        )}
+                        {m.saved && m.recipeId && sharingFor === m.id && (
+                          <div className="px-2">
+                            <ShareMenu recipeId={m.recipeId} onClose={() => setSharingFor(null)} />
                           </div>
                         )}
                       </div>

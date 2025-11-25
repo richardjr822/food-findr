@@ -20,6 +20,8 @@ import {
   HiChevronUp,
   HiOutlineSparkles
 } from "react-icons/hi2";
+import Feedback from "@/components/feedback";
+import ShareMenu from "@/components/share-menu";
 
 type SavedRecipe = {
   _id: string;
@@ -60,6 +62,8 @@ export default function SavedRecipesPage() {
     nutrition: true
   });
   const modalRef = useRef<HTMLDivElement>(null);
+  const feedbackRef = useRef<HTMLDivElement>(null);
+  const [showShare, setShowShare] = useState(false);
 
   async function fetchRecipes() {
     try {
@@ -173,13 +177,18 @@ export default function SavedRecipesPage() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden relative bg-gradient-to-br from-emerald-50/30 via-white to-teal-50/20">
+    <div className="flex h-screen overflow-hidden relative bg-white">
       {/* Background Pattern */}
       <div
         className="absolute inset-0 z-0 pointer-events-none"
         aria-hidden="true"
         style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2310b981' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+          backgroundImage:
+            "url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1600&q=80&auto=format&fit=crop')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          opacity: 0.08,
+          filter: "brightness(1)",
         }}
       />
       
@@ -395,7 +404,7 @@ export default function SavedRecipesPage() {
                     {/* Nutrition */}
                     {recipe.nutrition && (
                       <div className="grid grid-cols-4 gap-1.5">
-                        <div className="bg-gradient-to-br from-amber-50 to-white rounded-lg p-1.5 border border-amber-100 text-center">
+                        <div className="bg-gradient-to-br from-amber-50 to-white rounded-lg p-1.5 border-2 border-amber-200 text-center">
                           <div className="text-[10px] sm:text-xs font-bold text-amber-700">
                             {recipe.nutrition.calories ?? "—"}
                           </div>
@@ -403,7 +412,7 @@ export default function SavedRecipesPage() {
                             Cal
                           </div>
                         </div>
-                        <div className="bg-gradient-to-br from-emerald-50 to-white rounded-lg p-1.5 border border-emerald-100 text-center">
+                        <div className="bg-gradient-to-br from-emerald-50 to-white rounded-lg p-1.5 border-2 border-emerald-200 text-center">
                           <div className="text-[10px] sm:text-xs font-bold text-emerald-700">
                             {recipe.nutrition.protein ?? "—"}g
                           </div>
@@ -411,7 +420,7 @@ export default function SavedRecipesPage() {
                             Pro
                           </div>
                         </div>
-                        <div className="bg-gradient-to-br from-blue-50 to-white rounded-lg p-1.5 border border-blue-100 text-center">
+                        <div className="bg-gradient-to-br from-blue-50 to-white rounded-lg p-1.5 border-2 border-blue-200 text-center">
                           <div className="text-[10px] sm:text-xs font-bold text-blue-700">
                             {recipe.nutrition.carbs ?? "—"}g
                           </div>
@@ -419,7 +428,7 @@ export default function SavedRecipesPage() {
                             Carb
                           </div>
                         </div>
-                        <div className="bg-gradient-to-br from-teal-50 to-white rounded-lg p-1.5 border border-teal-100 text-center">
+                        <div className="bg-gradient-to-br from-teal-50 to-white rounded-lg p-1.5 border-2 border-teal-200 text-center">
                           <div className="text-[10px] sm:text-xs font-bold text-teal-700">
                             {recipe.nutrition.fat ?? "—"}g
                           </div>
@@ -503,18 +512,32 @@ export default function SavedRecipesPage() {
                     </span>
                   </div>
                 </div>
-                <button
-                  onClick={closeModal}
-                  className="flex-shrink-0 p-2 rounded-lg hover:bg-white/20 transition"
-                  aria-label="Close"
-                >
-                  <HiOutlineXMark className="h-5 w-5 sm:h-6 sm:w-6" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setShowShare(v => !v)}
+                    className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20"
+                  >
+                    Share
+                  </button>
+                  <button
+                    onClick={closeModal}
+                    className="flex-shrink-0 p-2 rounded-lg hover:bg-white/20 transition"
+                    aria-label="Close"
+                  >
+                    <HiOutlineXMark className="h-5 w-5 sm:h-6 sm:w-6" />
+                  </button>
+                </div>
               </div>
             </div>
 
             {/* Modal Body (scrollable) */}
             <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-5">
+              {showShare && (
+                <div>
+                  <ShareMenu recipeId={selectedRecipe._id} onClose={() => setShowShare(false)} />
+                </div>
+              )}
+
               {/* Nutrition Overview */}
               {selectedRecipe.nutrition && (
                 <div>
@@ -643,20 +666,32 @@ export default function SavedRecipesPage() {
                   </ol>
                 )}
               </div>
+
+              <div ref={feedbackRef} className="pt-2">
+                <Feedback recipeId={selectedRecipe._id} />
+              </div>
             </div>
 
             {/* Modal Footer (sticky, outside scroll) */}
             <div className="flex-shrink-0 bg-gradient-to-t from-neutral-50 to-white border-t-2 border-neutral-200 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-3 rounded-b-2xl sm:rounded-b-3xl">
-              <button
-                onClick={() => {
-                  setDeleteId(selectedRecipe._id);
-                  closeModal();
-                }}
-                className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-rose-50 border-2 border-rose-200 text-rose-700 font-bold text-xs sm:text-sm hover:bg-rose-100 transition"
-              >
-                <HiTrash className="h-4 w-4" />
-                Delete Recipe
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => feedbackRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                  className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-xs sm:text-sm shadow-lg hover:shadow-xl transition hover:-translate-y-0.5"
+                >
+                  Rate / Review
+                </button>
+                <button
+                  onClick={() => {
+                    setDeleteId(selectedRecipe._id);
+                    closeModal();
+                  }}
+                  className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-rose-50 border-2 border-rose-200 text-rose-700 font-bold text-xs sm:text-sm hover:bg-rose-100 transition"
+                >
+                  <HiTrash className="h-4 w-4" />
+                  Delete Recipe
+                </button>
+              </div>
               <button
                 onClick={closeModal}
                 className="flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-xs sm:text-sm shadow-lg hover:shadow-xl transition hover:-translate-y-0.5"

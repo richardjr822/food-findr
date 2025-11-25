@@ -2,6 +2,7 @@ import NextAuth, { type NextAuthOptions, type Session, type User, type Account, 
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import { validateUser, findUserByEmail, createUser } from "@/lib/auth";
+import { logEvent, logSecurityEvent } from "@/lib/log";
 
 // Export authOptions for API route usage (does not affect handler)
 export const authOptions: NextAuthOptions = {
@@ -13,15 +14,22 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error("Email and password are required.");
+        try {
+          if (!credentials?.email || !credentials?.password) {
+            return null;
+          }
+          const user = await validateUser(credentials.email, credentials.password);
+          if (!user) {
+            await logSecurityEvent("credentials_signin_failed", { email: credentials.email });
+            return null;
+          }
+          const { passwordHash, ...safeUser } = user;
+          await logEvent("info", "credentials_signin_success", { email: credentials.email });
+          return safeUser as any;
+        } catch {
+          await logEvent("error", "credentials_signin_error", { email: credentials?.email });
+          return null;
         }
-        const user = await validateUser(credentials.email, credentials.password);
-        if (!user) {
-          throw new Error("Invalid email or password.");
-        }
-        const { passwordHash, ...safeUser } = user;
-        return safeUser as any;
       },
     }),
     GoogleProvider({
@@ -98,11 +106,29 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
   },
+  events: {
+    async signIn(message: any) {
+      try {
+        await logEvent("info", "nextauth_signin", { provider: message?.account?.provider, email: message?.user?.email });
+      } catch {}
+    },
+    async signOut(message: any) {
+      try {
+        await logEvent("info", "nextauth_signout", { email: message?.token?.email });
+      } catch {}
+    },
+    async session(message: any) {
+      try {
+        await logEvent("info", "nextauth_session", { uid: message?.token?.uid });
+      } catch {}
+    },
+  },
   session: {
     strategy: "jwt" as const,
   },
   pages: {
     signIn: "/auth/login",
+    error: "/auth/login",
   },
   secret: process.env.NEXTAUTH_SECRET,
 };

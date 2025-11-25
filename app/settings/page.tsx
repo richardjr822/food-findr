@@ -40,7 +40,6 @@ const ProfileFormSchema = z.object({
   firstName: z.string().trim().min(1, "First name is required").max(100, "First name is too long"),
   lastName: z.string().trim().min(1, "Last name is required").max(100, "Last name is too long"),
   bio: z.string().trim().max(280, "Bio must be 280 characters or less").optional(),
-  profilePic: z.string().trim().url("Must be a valid URL").max(2048, "URL is too long").optional().or(z.literal("")),
 });
 
 const PasswordFormSchema = z.object({
@@ -209,7 +208,6 @@ export default function SettingsPage() {
       firstName: normalized.firstName,
       lastName: normalized.lastName,
       bio: normalized.bio,
-      profilePic: normalized.profilePic || "",
     });
 
     if (!validationResult.success) {
@@ -237,9 +235,6 @@ export default function SettingsPage() {
       if (normalized.bio.length > 0) {
         payload.bio = normalized.bio;
       }
-      if (normalized.profilePic.length > 0 && normalized.profilePic.startsWith("http")) {
-        payload.profilePic = normalized.profilePic;
-      }
 
       const res = await fetch("/api/user/settings", {
         method: "PATCH",
@@ -257,7 +252,6 @@ export default function SettingsPage() {
               firstName: normalized.firstName,
               lastName: normalized.lastName,
               bio: normalized.bio,
-              profilePic: normalized.profilePic,
             }
           : prev
       );
@@ -420,8 +414,7 @@ export default function SettingsPage() {
     (
       normalizedProfile.firstName !== initialProfile.firstName ||
       normalizedProfile.lastName !== initialProfile.lastName ||
-      normalizedProfile.bio !== initialProfile.bio ||
-      normalizedProfile.profilePic !== initialProfile.profilePic
+      normalizedProfile.bio !== initialProfile.bio
     )
   );
   const privacyDirty = !!(
@@ -504,13 +497,18 @@ export default function SettingsPage() {
             )}
           </div>
 
-          {/* Avatar Upload - Aesthetic-Usability Effect & Fitts's Law (large, accessible target) */}
+          {/* Avatar Upload */}
           <AvatarUploader
             currentUrl={profile.profilePic || ""}
-            onUrlChange={(url) => setProfile({ ...profile, profilePic: url })}
+            onUrlChange={(url) => {
+              setProfile({ ...profile, profilePic: url });
+              if (url.startsWith("/uploads/avatars/")) {
+                setInitialProfile((prev) => (prev ? { ...prev, profilePic: url } : prev));
+              }
+            }}
           />
 
-          {/* Chunking: Group related fields together */}
+          {/* Name fields */}
           <div className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -560,24 +558,25 @@ export default function SettingsPage() {
                 )}
               </div>
             </div>
+          </div>
 
-            {/* Email - Read-only with clear visual distinction */}
-            <div>
-              <label className="block text-sm font-semibold mb-1.5 text-neutral-800 flex items-center gap-2">
-                Email
-                <span className="text-xs font-normal text-neutral-500 bg-neutral-100 px-2 py-0.5 rounded">Read-only</span>
-              </label>
-              <input
-                type="email"
-                className="w-full border border-neutral-200 rounded-lg px-3 py-2.5 text-sm bg-neutral-50 text-neutral-600 cursor-not-allowed focus:outline-none"
-                value={profile.email}
-                disabled
-              />
-              <p className="text-xs text-neutral-500 mt-1 flex items-center gap-1">
-                <HiOutlineInformationCircle className="w-3.5 h-3.5" />
-                Your email cannot be changed for security reasons
-              </p>
-            </div>
+          {/* Email - Read-only with clear visual distinction */}
+          <div>
+            <label className="block text-sm font-semibold mb-1.5 text-neutral-800 flex items-center gap-2">
+              Email
+              <span className="text-xs font-normal text-neutral-500 bg-neutral-100 px-2 py-0.5 rounded">Read-only</span>
+            </label>
+            <input
+              type="email"
+              className="w-full border border-neutral-200 rounded-lg px-3 py-2.5 text-sm bg-neutral-50 text-neutral-600 cursor-not-allowed focus:outline-none"
+              value={profile.email}
+              disabled
+            />
+            <p className="text-xs text-neutral-500 mt-1 flex items-center gap-1">
+              <HiOutlineInformationCircle className="w-3.5 h-3.5" />
+              Your email cannot be changed for security reasons
+            </p>
+          </div>
 
             {/* Bio - Miller's Law (keep it simple, character counter for feedback) */}
             <div>
@@ -613,7 +612,7 @@ export default function SettingsPage() {
                 </span>
               </div>
             </div>
-          </div>
+
           <div className="flex items-center gap-3 pt-2">
             <button
               type="submit"

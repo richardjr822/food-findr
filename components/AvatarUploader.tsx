@@ -7,8 +7,6 @@ import { toast } from "sonner";
 export function AvatarUploader({ currentUrl, onUrlChange }: { currentUrl: string; onUrlChange: (url: string) => void }) {
   const [previewUrl, setPreviewUrl] = useState(currentUrl);
   const [uploading, setUploading] = useState(false);
-  const [urlInput, setUrlInput] = useState("");
-  const [showUrlInput, setShowUrlInput] = useState(false);
   const [error, setError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -39,43 +37,34 @@ export function AvatarUploader({ currentUrl, onUrlChange }: { currentUrl: string
     setUploading(true);
 
     try {
-      // Create local preview
+      // Local preview immediately
       const reader = new FileReader();
       reader.onloadend = () => {
         const result = reader.result as string;
         setPreviewUrl(result);
-        // For now, we'll use a placeholder URL since no storage is configured
-        // In production, you would upload to a storage service here
-        toast.info("Avatar preview updated. Note: Upload to cloud storage not yet configured.");
-        onUrlChange(result); // Pass the data URL for preview
       };
       reader.readAsDataURL(file);
-    } catch (err) {
-      setError("Failed to process image");
-      toast.error("Failed to process image");
+
+      // Upload to server
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/user/profile/avatar", {
+        method: "POST",
+        body: form,
+      });
+      const data = await res.json().catch(() => ({} as any));
+      if (!res.ok || !data?.url) {
+        throw new Error(data?.error || "Failed to upload avatar");
+      }
+      setPreviewUrl(data.url);
+      onUrlChange(data.url); // only set final URL (avoid data: URLs in form state)
+      toast.success("Profile picture updated");
+    } catch (err: any) {
+      setError(err?.message || "Failed to upload avatar");
+      toast.error(err?.message || "Failed to upload avatar");
     } finally {
       setUploading(false);
-    }
-  };
-
-  const handleUrlSubmit = () => {
-    const trimmed = urlInput.trim();
-    if (!trimmed) {
-      setError("Please enter a URL");
-      return;
-    }
-
-    try {
-      new URL(trimmed);
-      setPreviewUrl(trimmed);
-      onUrlChange(trimmed);
-      setUrlInput("");
-      setShowUrlInput(false);
-      setError("");
-      toast.success("Avatar URL updated");
-    } catch {
-      setError("Invalid URL format");
-      toast.error("Invalid URL format");
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -119,32 +108,7 @@ export function AvatarUploader({ currentUrl, onUrlChange }: { currentUrl: string
             >
               {uploading ? "Uploading..." : "Upload Image"}
             </button>
-            <button
-              type="button"
-              onClick={() => setShowUrlInput(!showUrlInput)}
-              className="text-xs px-3 py-1.5 bg-neutral-100 text-neutral-700 rounded-lg hover:bg-neutral-200 transition font-medium"
-            >
-              {showUrlInput ? "Cancel" : "Use URL"}
-            </button>
           </div>
-          {showUrlInput && (
-            <div className="flex gap-2">
-              <input
-                type="url"
-                value={urlInput}
-                onChange={(e) => setUrlInput(e.target.value)}
-                placeholder="https://example.com/avatar.jpg"
-                className="flex-1 text-xs border border-neutral-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-200"
-              />
-              <button
-                type="button"
-                onClick={handleUrlSubmit}
-                className="text-xs px-3 py-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition font-medium"
-              >
-                Apply
-              </button>
-            </div>
-          )}
           <p className="text-xs text-neutral-500">JPG, PNG, GIF or WebP. Max 5MB.</p>
           {error && <p className="text-xs text-rose-600">{error}</p>}
         </div>

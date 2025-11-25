@@ -40,6 +40,9 @@ export default function Sidebar() {
   const [showLogout, setShowLogout] = useState(false);
   const [search, setSearch] = useState("");
   const [error, setError] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState<string | null>(null);
+  const sessionIdRef = useRef<string | null>(null);
 
   const { data: session } = useSession();
   const realUser = session?.user;
@@ -108,6 +111,76 @@ export default function Sidebar() {
     const interval = setInterval(fetchThreads, 5000);
     return () => clearInterval(interval);
   }, []);
+
+  // Fetch user profilePic for avatar
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const res = await fetch("/api/user/settings", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        const pic = data?.profile?.profilePic as string | undefined;
+        if (active) {
+          setAvatarUrl(pic && pic.length > 0 ? pic : null);
+          const fn = (data?.profile?.firstName || "").trim();
+          const ln = (data?.profile?.lastName || "").trim();
+          const name = `${fn} ${ln}`.trim();
+          setDisplayName(name || fn || ln || null);
+        }
+      } catch {}
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // Session start/end tracking
+  useEffect(() => {
+    if (!realUser?.email) return;
+    const existing = typeof window !== "undefined" ? sessionStorage.getItem("ff_sessionId") : null;
+    async function start() {
+      try {
+        const res = await fetch("/api/activity/session/start", { method: "POST" });
+        const data = await res.json().catch(() => ({} as any));
+        if (res.ok && data?.sessionId) {
+          sessionIdRef.current = data.sessionId as string;
+          sessionStorage.setItem("ff_sessionId", sessionIdRef.current);
+        }
+      } catch {}
+    }
+    if (!existing) {
+      start();
+    } else {
+      sessionIdRef.current = existing;
+    }
+
+    const end = async () => {
+      try {
+        const id = sessionIdRef.current || sessionStorage.getItem("ff_sessionId");
+        await fetch("/api/activity/session/end", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId: id || undefined }),
+          keepalive: true,
+        });
+        sessionStorage.removeItem("ff_sessionId");
+      } catch {}
+    };
+
+    function handleBeforeUnload() {
+      end();
+    }
+    function handleVisibility() {
+      if (document.visibilityState === "hidden") end();
+    }
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [realUser?.email]);
 
   // Listen for custom event from Generate page when threads change
   useEffect(() => {
@@ -248,6 +321,8 @@ export default function Sidebar() {
                       : "text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900"
                   }
                 `}
+                aria-current={isActive ? "page" : undefined}
+                tabIndex={0}
               >
                 <Icon className="w-5 h-5 flex-shrink-0" />
                 {!collapsed && <span>{item.label}</span>}
@@ -353,18 +428,23 @@ export default function Sidebar() {
               onClick={() => setUserMenu((v) => !v)}
               aria-haspopup="true"
               aria-expanded={userMenu}
-              title={collapsed ? realUser?.name || "User" : undefined}
+              title={collapsed ? displayName || realUser?.name || "User" : undefined}
             >
-              <div className="flex items-center justify-center h-10 w-10 rounded-full bg-gradient-to-br from-emerald-100 to-emerald-200 flex-shrink-0 shadow-md">
-                <span className="text-emerald-700 font-bold text-base">
-                  {realUser?.name?.charAt(0)?.toUpperCase() || "U"}
-                </span>
+              <div className="flex items-center justify-center h-10 w-10 rounded-full flex-shrink-0 shadow-md bg-neutral-200 overflow-hidden">
+                {avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+                ) : (
+                  <span className="text-emerald-700 font-bold text-base">
+                    {(displayName || realUser?.name || "U").slice(0, 1).toUpperCase()}
+                  </span>
+                )}
               </div>
               {!collapsed && (
                 <>
                   <div className="flex-1 text-left min-w-0">
                     <span className="block font-bold text-sm text-neutral-900 truncate">
-                      {realUser?.name || "User"}
+                      {displayName || realUser?.name || "User"}
                     </span>
                     <span className="block text-xs text-neutral-500 truncate">
                       {realUser?.email || "user@email.com"}
