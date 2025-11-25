@@ -40,7 +40,9 @@ function isClearlyOutOfScope(text: string) {
   const foodHints = [
     "recipe","ingredients","cook","cooking","bake","baking","grill","fry","saute","sauté","meal","dish","serve",
     "nutrition","calories","protein","carbs","fat","diet","cuisine","marinate","simmer","boil","roast","season",
-    "pan","oven","skillet","sauce","garnish","prep","servings"
+    "pan","oven","skillet","sauce","garnish","prep","servings",
+    // Common meal types to allow bare selections
+    "breakfast","lunch","dinner","snack","dessert"
   ];
   const hasFoodSignal = foodHints.some(k => s.includes(k));
   return !hasFoodSignal;
@@ -132,7 +134,7 @@ export async function POST(req: NextRequest) {
     const mealType = body?.mealType ? String(body.mealType) : "";
     const diet: string[] = Array.isArray(body?.diet) ? body.diet.map(String) : [];
 
-    const userText = userMsg;
+    const userText = userMsg || mealType || "recipe";
     if (isClearlyOutOfScope(userText)) {
       return send({ error: "Request is outside recipe scope." }, 422);
     }
