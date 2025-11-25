@@ -20,9 +20,22 @@ export default function PublicTryPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userMsg: manualPrompt, mealType }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "Generation failed");
-      setRecipe(data);
+      const ct = res.headers.get("content-type") || "";
+      if (ct.includes("application/json")) {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || "Generation failed");
+        setRecipe(data);
+        return;
+      }
+      // Non-JSON (likely redirect or HTML error)
+      const txt = await res.text().catch(() => "");
+      if (res.status === 401 || res.status === 403) {
+        throw new Error("This demo is public. Please refresh and try again.");
+      }
+      if (res.status === 405) {
+        throw new Error("Method not allowed. Deploy may be pending. Try again in a moment.");
+      }
+      throw new Error(txt || `Request failed (${res.status}).`);
     } catch (e: any) {
       setError(e?.message || "Something went wrong.");
     } finally {

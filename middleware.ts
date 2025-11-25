@@ -19,6 +19,7 @@ const PUBLIC_PATHS = new Set<string>([
 function isPublicPath(pathname: string): boolean {
   if (PUBLIC_PATHS.has(pathname)) return true;
   if (pathname.startsWith("/api/auth")) return true;
+  if (pathname.startsWith("/api/public")) return true;
   if (pathname.startsWith("/auth/reset")) return true;
   if (pathname.startsWith("/auth/forgot")) return true;
   if (pathname.startsWith("/share/")) return true;
@@ -41,14 +42,18 @@ function isAuthPage(pathname: string): boolean {
 export async function middleware(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
 
+  // Always allow public API routes
+  if (pathname.startsWith("/api/public")) {
+    return NextResponse.next();
+  }
+
   const isAuthApi = pathname.startsWith("/api/auth");
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
 
   // Unauthenticated flow
   if (!token) {
-    // API protection (except auth endpoints and explicitly public API)
-    const isPublicApi = pathname.startsWith("/api/public");
-    if (pathname.startsWith("/api") && !isAuthApi && !isPublicApi) {
+    // API protection (except auth endpoints)
+    if (pathname.startsWith("/api") && !isAuthApi) {
       return new NextResponse(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { "Content-Type": "application/json" },
