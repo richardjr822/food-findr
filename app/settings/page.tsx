@@ -407,8 +407,14 @@ export default function SettingsPage() {
                       ? "border-rose-300 focus:ring-rose-200 focus:border-rose-400"
                       : "border-neutral-200 focus:ring-emerald-200 focus:border-emerald-300"
                   }`}
+                  inputMode="text"
+                  autoComplete="given-name"
+                  pattern="^[A-Za-zÀ-ÖØ-öø-ÿ'\- ]*$"
+                  onKeyDown={(e) => {
+                    if (e.key.length === 1 && /\d/.test(e.key)) e.preventDefault();
+                  }}
                   value={profile.firstName || ""}
-                  onChange={(e) => setProfile({ ...profile, firstName: e.target.value })}
+                  onChange={(e) => setProfile({ ...profile, firstName: e.target.value.replace(/\d+/g, "") })}
                   placeholder="Enter your first name"
                   required
                 />
@@ -430,8 +436,14 @@ export default function SettingsPage() {
                       ? "border-rose-300 focus:ring-rose-200 focus:border-rose-400"
                       : "border-neutral-200 focus:ring-emerald-200 focus:border-emerald-300"
                   }`}
+                  inputMode="text"
+                  autoComplete="family-name"
+                  pattern="^[A-Za-zÀ-ÖØ-öø-ÿ'\- ]*$"
+                  onKeyDown={(e) => {
+                    if (e.key.length === 1 && /\d/.test(e.key)) e.preventDefault();
+                  }}
                   value={profile.lastName || ""}
-                  onChange={(e) => setProfile({ ...profile, lastName: e.target.value })}
+                  onChange={(e) => setProfile({ ...profile, lastName: e.target.value.replace(/\d+/g, "") })}
                   placeholder="Enter your last name"
                   required
                 />
