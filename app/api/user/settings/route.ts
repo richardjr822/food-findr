@@ -24,8 +24,18 @@ async function updateUserById(userId: string, update: Partial<User> & Record<str
 
 const ProfileSchema = z
   .object({
-    firstName: z.string().trim().min(1).max(100),
-    lastName: z.string().trim().min(1).max(100),
+    firstName: z
+      .string()
+      .trim()
+      .min(1)
+      .max(100)
+      .refine((v) => !/\d/.test(v), "Numbers are not allowed"),
+    lastName: z
+      .string()
+      .trim()
+      .min(1)
+      .max(100)
+      .refine((v) => !/\d/.test(v), "Numbers are not allowed"),
     bio: z.string().trim().max(280).optional(),
     profilePic: z
       .string()

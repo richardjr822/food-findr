@@ -5,8 +5,7 @@ import { User } from "@/lib/models/User";
 import { logEvent } from "@/lib/log";
 import { ObjectId } from "mongodb";
 import crypto from "crypto";
-import path from "path";
-import fs from "fs/promises";
+import { put } from "@vercel/blob";
 
 export const runtime = "nodejs";
 
@@ -42,18 +41,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "File too large (max 5MB)" }, { status: 400 });
     }
 
-    const bytes = Buffer.from(await file.arrayBuffer());
-
-    // Ensure directory exists
-    const relDir = path.posix.join("uploads", "avatars", userId);
-    const absDir = path.join(process.cwd(), "public", relDir);
-    await fs.mkdir(absDir, { recursive: true });
-
     const filename = `${Date.now()}_${crypto.randomBytes(8).toString("hex")}.${ext}`;
-    const absPath = path.join(absDir, filename);
-    const relUrl = `/${path.posix.join(relDir, filename)}`; // URL path
-
-    await fs.writeFile(absPath, bytes);
+    const blobPath = `uploads/avatars/${userId}/${filename}`;
+    const blob = await put(blobPath, file, { access: "public", contentType: mime });
+    const relUrl = blob.url;
 
     // Update user document
     const client = await clientPromise;

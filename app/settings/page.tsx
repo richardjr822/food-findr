@@ -27,8 +27,18 @@ type NormalizedProfile = {
 
 // Client-side Zod schemas for validation
 const ProfileFormSchema = z.object({
-  firstName: z.string().trim().min(1, "First name is required").max(100, "First name is too long"),
-  lastName: z.string().trim().min(1, "Last name is required").max(100, "Last name is too long"),
+  firstName: z
+    .string()
+    .trim()
+    .min(1, "First name is required")
+    .max(100, "First name is too long")
+    .refine((v) => !/\d/.test(v), "Numbers are not allowed"),
+  lastName: z
+    .string()
+    .trim()
+    .min(1, "Last name is required")
+    .max(100, "Last name is too long")
+    .refine((v) => !/\d/.test(v), "Numbers are not allowed"),
   bio: z.string().trim().max(280, "Bio must be 280 characters or less").optional(),
 });
 
@@ -379,9 +389,7 @@ export default function SettingsPage() {
             currentUrl={profile.profilePic || ""}
             onUrlChange={(url) => {
               setProfile({ ...profile, profilePic: url });
-              if (url.startsWith("/uploads/avatars/")) {
-                setInitialProfile((prev) => (prev ? { ...prev, profilePic: url } : prev));
-              }
+              setInitialProfile((prev) => (prev ? { ...prev, profilePic: url } : prev));
             }}
           />
 
