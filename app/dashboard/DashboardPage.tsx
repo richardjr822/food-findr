@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { 
   HiOutlineClock, 
@@ -32,6 +33,7 @@ interface SavedRecipe {
 
 export default function DashboardPage() {
   const { data: session } = useSession();
+  const router = useRouter();
   const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([]);
   const [savedRecipes, setSavedRecipes] = useState<SavedRecipe[]>([]);
   const [loadingSearches, setLoadingSearches] = useState(true);
@@ -44,9 +46,17 @@ export default function DashboardPage() {
     }
   }, [session]);
 
+  useEffect(() => {
+    function onPageShow(e: PageTransitionEvent) {
+      if ((e as any)?.persisted) router.refresh();
+    }
+    window.addEventListener("pageshow", onPageShow as any);
+    return () => window.removeEventListener("pageshow", onPageShow as any);
+  }, [router]);
+
   async function fetchRecentSearches() {
     try {
-      const res = await fetch("/api/dashboard/recent-searches");
+      const res = await fetch("/api/dashboard/recent-searches", { cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
         setRecentSearches(data.searches || []);
@@ -60,7 +70,7 @@ export default function DashboardPage() {
 
   async function fetchSavedRecipes() {
     try {
-      const res = await fetch("/api/dashboard/saved-recipes");
+      const res = await fetch("/api/dashboard/saved-recipes", { cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
         setSavedRecipes(data.recipes || []);
@@ -285,6 +295,7 @@ export default function DashboardPage() {
                   <Link
                     key={recipe.id}
                     href={`/recipe/${recipe.recipe_id}`}
+                    prefetch={false}
                     className="group bg-white rounded-2xl border border-neutral-200 overflow-hidden hover:border-rose-200 shadow hover:shadow-xl transition hover:-translate-y-1 p-6"
                   >
                     <div className="flex items-start justify-between mb-4">

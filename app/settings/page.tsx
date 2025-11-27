@@ -42,21 +42,25 @@ const ProfileFormSchema = z.object({
   bio: z.string().trim().max(280, "Bio must be 280 characters or less").optional(),
 });
 
-const PasswordFormSchema = z.object({
-  currentPassword: z.string().min(1, "Current password is required"),
-  newPassword: z
-    .string()
-    .min(8, "Password must be at least 8 characters")
-    .max(128, "Password is too long")
-    .regex(/(?=.*[0-9!@#$%^&*()_+\-={}\\[\]:";'<>?,.\\/])/, "Password must contain at least one number or symbol"),
-  confirmPassword: z.string().min(1, "Please confirm your password"),
-}).refine((data) => data.newPassword === data.confirmPassword, {
-  message: "Passwords do not match",
-  path: ["confirmPassword"],
-}).refine((data) => data.currentPassword !== data.newPassword, {
-  message: "New password must be different from current password",
-  path: ["newPassword"],
-});
+const PasswordFormSchema = z
+  .object({
+    currentPassword: z.string().trim().min(1, "Current password is required"),
+    newPassword: z
+      .string()
+      .trim()
+      .min(8, "Password must be at least 8 characters")
+      .max(128, "Password is too long")
+      .regex(/(?=.*[0-9!@#$%^&*()_+\-={}\\[\]:";'<>?,.\\/])/, "Password must contain at least one number or symbol"),
+    confirmPassword: z.string().trim().min(1, "Please confirm your password"),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  })
+  .refine((data) => data.currentPassword !== data.newPassword, {
+    message: "New password must be different from current password",
+    path: ["newPassword"],
+  });
 
 function normalizeProfileValues(profile: UserProfile | null): NormalizedProfile | null {
   if (!profile) return null;
@@ -174,8 +178,8 @@ export default function SettingsPage() {
         }
       });
       setProfileValidationErrors(errors);
-      setProfileError("Please fix the validation errors below.");
-      toast.error("Please fix the validation errors.");
+      setProfileError("Invalid");
+      toast.error("Invalid");
       return;
     }
 
@@ -231,9 +235,9 @@ export default function SettingsPage() {
 
     // Client-side Zod validation
     const validationResult = PasswordFormSchema.safeParse({
-      currentPassword,
-      newPassword,
-      confirmPassword,
+      currentPassword: currentPassword.trim(),
+      newPassword: newPassword.trim(),
+      confirmPassword: confirmPassword.trim(),
     });
 
     if (!validationResult.success) {
@@ -244,8 +248,8 @@ export default function SettingsPage() {
         }
       });
       setPwValidationErrors(errors);
-      setPwError("Please fix the validation errors below.");
-      toast.error("Please fix the validation errors.");
+      setPwError("Invalid");
+      toast.error("Invalid");
       return;
     }
 
@@ -254,7 +258,7 @@ export default function SettingsPage() {
       const res = await fetch("/api/user/settings/password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ currentPassword, newPassword }),
+        body: JSON.stringify({ currentPassword: currentPassword.trim(), newPassword: newPassword.trim() }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -314,10 +318,10 @@ export default function SettingsPage() {
     )
   );
   const passwordReady =
-    currentPassword.length > 0 &&
-    newPassword.length >= 8 &&
-    confirmPassword.length >= 8 &&
-    newPassword === confirmPassword;
+    currentPassword.trim().length > 0 &&
+    newPassword.trim().length >= 8 &&
+    confirmPassword.trim().length >= 8 &&
+    newPassword.trim() === confirmPassword.trim();
 
   let content: ReactNode;
 
